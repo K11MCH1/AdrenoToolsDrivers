@@ -5,9 +5,11 @@ A repository containing all the drivers for <a href="https://github.com/skyline-
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
 
-For TWRP or Magisk modules, join the <a href="https://t.me/adreno_konabess">Adreno  Konabess Support Telegram group</a>.
+For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabess">Konabess Support Telegram group</a>.
 
 # Usage
 
 - [Skyline](docs/skyline.md)
 - [Vita3K](docs/vita3k.md)
+
+For any questions contact me on the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a> or the <a href="https://t.me/adreno_konabess">Adreno Konabess Support Telegram group</a>.
