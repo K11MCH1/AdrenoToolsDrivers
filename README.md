@@ -1,4 +1,4 @@
-# AdrenoTools Drivers
+# AdrenoTools Drivers for Skyline and Vita3K Emulators
 A repository for all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a> and <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>. 
 <br>Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 <br>Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
