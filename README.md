@@ -1,4 +1,4 @@
-# SkylineDrivers
+# AdrenoTools Drivers
 A repository for all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a> and <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>.
 
 To use them, just place them anywhere on your device. Skyline's driver configuration in the Settings screen will request to point towards the drivers via 
