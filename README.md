@@ -12,4 +12,4 @@ For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabes
 - [Skyline](docs/skyline.md)
 - [Vita3K](docs/vita3k.md)
 
-For any questions contact me on the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a> or the <a href="https://t.me/adreno_konabess">Adreno Konabess Support Telegram group</a>.
+For any questions contact me on the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a>.
