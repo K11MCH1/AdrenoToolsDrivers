@@ -1,4 +1,7 @@
 # AdrenoTools Drivers for Skyline and Vita3K Emulators
+![funding moment](https://img.shields.io/badge/funding-markus%20tech-9cf)
+
+---
 
 A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a> and <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>.
 
@@ -8,6 +11,8 @@ A repository containing all the drivers for <a href="https://github.com/skyline-
 For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabess">Konabess Support Telegram group</a>.
 
 # Usage
+
+---
 
 - [Skyline](docs/skyline.md)
 - [Vita3K](docs/vita3k.md)
