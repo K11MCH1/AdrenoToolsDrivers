@@ -7,7 +7,7 @@
 
 ---
 
-A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a> and <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>.
+A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a> and <a href="[https://github.com/Vita3K/Vita3K-Android](https://github.com/yuzu-emu/yuzu)">Yuzu Android</a>.
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
