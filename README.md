@@ -7,7 +7,7 @@
 
 ---
 
-A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a> and <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a>.
+A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a> and <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a>.
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
@@ -19,6 +19,7 @@ For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabes
 ---
 
 - [Skyline](docs/skyline.md)
+- Strato (In works)
 - [Vita3K](docs/vita3k.md)
 
-For any questions contact me on the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a>.
+For any questions contact me on the <a href="https://discord.gg/YhpdhVBmXX">Strato Emulator Official Discord</a>.
