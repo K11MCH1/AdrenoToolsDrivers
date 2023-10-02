@@ -17,7 +17,9 @@ In the file picker navigate to the driver package and tap on it:
 <p align="center"><img src="images/skyline_picker.png"/></p>
 
 <br>
-~~For Support visit the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a>.~~ (Development on Skyline has been ceased)
+
+~For Support visit the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a>.~ (Development on Skyline has been ceased)
 
 <br>
+
 For Support visit the <a href="https://discord.gg/YhpdhVBmXX">Strato Emulator Official Discord</a>.
