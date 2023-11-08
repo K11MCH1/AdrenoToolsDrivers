@@ -1,4 +1,4 @@
-# AdrenoTools Drivers for Skyline, Strato, Vita3K, Dolphin,Yuzu Android And Citra Android Emulators
+# AdrenoTools Drivers for Skyline, Strato, Vita3K, Dolphin and Yuzu Android Emulators
 
 ---
 
@@ -7,8 +7,7 @@
 
 ---
 
-A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a> and <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a>
-<a href="https://github.com/citra-emu/citra">Citra Android</a>
+A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a> and <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a>.
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
@@ -24,6 +23,5 @@ For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabes
 - [Vita3K](docs/vita3k.md)
 - [Yuzu Android](docs/yuzu_android.md)
 - [Dolphin](docs/dolphin.md)
-- [Citra](docs/citra.md)
 
 For any questions contact me on the <a href="https://discord.gg/YhpdhVBmXX">Strato Emulator Official Discord</a>.
