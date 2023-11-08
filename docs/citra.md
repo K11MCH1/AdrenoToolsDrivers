@@ -1,10 +1,14 @@
 # Citra Usage
-First You Need To Go To Settings
-![citra-got-a-massive-update-custom-drivers-new-yuzu-like-ui-v0-ed7zgxo6m6yb1](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/b8a4bbb1-5fbc-4fff-a16c-050f84f5ed9d)
-Second You Need To Click On GPU Driver Maneger
-![citra-got-a-massive-update-custom-drivers-new-yuzu-like-ui-v0-7v1l0e27m6yb1](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/3b5b8e67-023a-4644-9021-bfc83492ebe0)
-Third You Need To Select The Driver Zip File
-![citra-got-a-massive-update-custom-drivers-new-yuzu-like-ui-v0-0agnivd7m6yb1](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/02154201-99a9-46d6-bd64-60dfd63eb40d)
+•First you need to go to settings
+👇
+![Screenshot_20231108-214909](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/eac2273f-2b2c-4054-9f7d-931ad0b06cba)
+
+•Second you need to click on GPU driver manager 👇
+![Screenshot_20231108-215042](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/f15a80b7-3dac-4c5c-9670-099eee858388)
+
+•Third you need to select the driver zip file by clicking on install 👇
+![citra-got-a-massive-update-custom-drivers-new-yuzu-like-ui-v0-0agnivd7m6yb1_1](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/d3c87a04-67bf-44fe-8139-04dc0280471a)
+
 # Complete Setup
 
 For Support visit the <a href="https://discord.gg/FAXfZV9">Citra Emulator Official Discord</a>.
