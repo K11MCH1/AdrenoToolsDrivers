@@ -7,4 +7,4 @@ Third You Need To Select The Driver Zip File
 ![citra-got-a-massive-update-custom-drivers-new-yuzu-like-ui-v0-0agnivd7m6yb1](https://github.com/K11MCH1/AdrenoToolsDrivers/assets/145665569/02154201-99a9-46d6-bd64-60dfd63eb40d)
 # Complete Setup
 
-For Support visit the <a href="https://discord.gg/FAXfZV9">Yuzu Emulator Official Discord</a>.
+For Support visit the <a href="https://discord.gg/FAXfZV9">Citra Emulator Official Discord</a>.
