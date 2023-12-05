@@ -1,4 +1,4 @@
-# AdrenoTools Drivers for Android Emulators
+# AdrenoTools drivers for Android emulators
 
 ---
 
