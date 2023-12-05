@@ -38,4 +38,5 @@ For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">
 Bylaws  
 Mark  
 Crytonics  
-Danylo
+Danylo  
+Strato & Yuzu testers
