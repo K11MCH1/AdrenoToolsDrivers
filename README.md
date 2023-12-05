@@ -37,4 +37,5 @@ For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">
 ### Special thanks to
 Bylaws  
 Mark  
-Crytonics
+Crytonics  
+Danylo
