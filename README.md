@@ -39,5 +39,5 @@ Bylaws
 Mark  
 Crytonics  
 Danylo  
-Mesa 
+Mesa  
 Strato & Yuzu testers
