@@ -1,4 +1,4 @@
-# AdrenoTools Drivers for Skyline, Strato, Vita3K, Dolphin,Yuzu Android And Citra Android Emulators
+# AdrenoTools Drivers for Android Emulators
 
 ---
 
