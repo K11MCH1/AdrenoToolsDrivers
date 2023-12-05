@@ -18,7 +18,7 @@ For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabes
 # Reporting issues
 
 If you encounter issues with your games, please consult the emulator's devs first. I just build these drivers. I am unable to fix anything and I can only report technical feedback given to me by the devs so I can report to Mesa (the source).
-Any issues unrelated to games are welcome.
+Any questions unrelated to games are welcome.
 Thank you for understanding.
 
 # Usage
