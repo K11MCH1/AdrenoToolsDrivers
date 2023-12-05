@@ -7,7 +7,7 @@
 
 ---
 
-A repository containing all the drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a>, <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a> and
+A repository containing custom drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a>, <a href="https://github.com/yuzu-emu/yuzu">Yuzu Android</a> and
 <a href="https://github.com/citra-emu/citra">Citra Android</a>
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
@@ -15,9 +15,13 @@ A repository containing all the drivers for <a href="https://github.com/skyline-
 
 For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabess">Konabess Support Telegram group</a>.
 
-# Usage
+# Reporting issues
 
----
+If you encounter issues with your games, please consult the emulator's devs first. I just build these drivers. I am unable to fix anything and I can only report technical feedback given to me by the devs so I can report to Mesa (the source).
+Any issues unrelated to games are welcome.
+Thank you for understanding.
+
+# Usage
 
 - ~[Skyline](docs/skyline.md)~ (Development on Skyline has been ceased)
 - Strato (In works)
@@ -26,4 +30,11 @@ For TWRP or Magisk modules, join the Adreno <a href="https://t.me/adreno_konabes
 - [Dolphin](docs/dolphin.md)
 - [Citra](docs/citra.md)
 
-For any questions contact me on the <a href="https://discord.gg/YhpdhVBmXX">Strato Emulator Official Discord</a>.
+For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a>, <a href="https://discord.gg/XnbXNQM">Cassia</a> or <a href="https://discord.gg/u77vRWY">Yuzu</a> Emulator Official Discord
+
+---
+
+### Special thanks to
+Bylaws  
+Mark  
+Crytonics
