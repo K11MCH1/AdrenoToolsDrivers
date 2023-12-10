@@ -2,23 +2,23 @@
 
 Tap on the Settings cog on the main screen of the app:
 
-<p align="center"><img src="images/dolphin_settings.png"/></p>
+<p align="center"><img src="images/dolphin/dolphin_settings.png"/></p>
 
 Tap on "Graphics Settings":
 
-<p align="center"><img src="images/dolphin_graphics_settings.png"/></p>
+<p align="center"><img src="images/dolphin/dolphin_graphics_settings.png"/></p>
 
 Tap on "GPU driver":
 
-<p align="center"><img src="images/dolphin_gpu.png"/></p>
+<p align="center"><img src="images/dolphin/dolphin_gpu.png"/></p>
 
 Tap on "Install driver":
 
-<p align="center"><img src="images/dolphin_install.png"/></p>
+<p align="center"><img src="images/dolphin/dolphin_install.png"/></p>
 
 In the file picker navigate to the driver package and tap on it:
 
-<p align="center"><img src="images/dolphin_picker.png"/></p>
+<p align="center"><img src="images/dolphin/dolphin_picker.png"/></p>
 
 <br>
 
