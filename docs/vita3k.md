@@ -17,4 +17,4 @@ In the file picker navigate to the driver package and tap on it:
 <p align="center"><img src="images/vita3k/vita3k_picker.png"/></p>
 
 <br>
-For Support visit the <a href="https://discord.gg/vita3k">Vita3K Official Discord</a>.
+For Support visit the <a href="https://discord.com/invite/6aGwQzh">Vita3K Official Discord</a>.
