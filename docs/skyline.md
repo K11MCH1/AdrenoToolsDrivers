@@ -18,7 +18,7 @@ In the file picker navigate to the driver package and tap on it:
 
 <br>
 
-~For Support visit the <a href="https://discord.gg/skyline-emu">Skyline Emulator Official Discord</a>.~ (Development on Skyline has been ceased)
+(Development on Skyline has been ceased)
 
 <br>
 
