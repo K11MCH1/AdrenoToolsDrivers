@@ -1,4 +1,4 @@
-# Citra Usage
+# PPSSPP Usage
 
 •First you need to go to settings:
 <p align="center"><img src="images/ppsspp/ppsspp_main.jpg"/></p>
