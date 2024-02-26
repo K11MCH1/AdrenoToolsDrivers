@@ -28,7 +28,7 @@ Thank you for understanding.
 - [Vita3K](docs/vita3k.md)
 - [yuzu Android](docs/yuzu_android.md)
 - [Dolphin](docs/dolphin.md)
-- ~[Citra]~(docs/citra.md) We're redoing the page.
+- ~[Citra](docs/citra.md)~ We're redoing the page.
 - [PPSSPP](docs/ppsspp.md)
 
 For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a>, <a href="https://discord.gg/XnbXNQM">Cassia</a> or <a href="https://discord.gg/u77vRWY">yuzu</a> Emulator Official Discord
