@@ -7,7 +7,7 @@
 
 ---
 
-A repository containing custom drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a>, <a href="https://github.com/yuzu-emu/yuzu">yuzu Android</a>, <a href="https://github.com/citra-emu/citra">Citra Android</a> and <a href="https://github.com/hrydgard/ppsspp">PPSSPP</a>
+A repository containing custom drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a> and <a href="https://github.com/hrydgard/ppsspp">PPSSPP</a>
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
@@ -26,12 +26,10 @@ Thank you for understanding.
 - ~[Skyline](docs/skyline.md)~ (Development on Skyline has been ceased)
 - Strato (In the works)
 - [Vita3K](docs/vita3k.md)
-- [yuzu Android](docs/yuzu_android.md)
 - [Dolphin](docs/dolphin.md)
-- [Citra](docs/citra.md)
 - [PPSSPP](docs/ppsspp.md)
 
-For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a>, <a href="https://discord.gg/XnbXNQM">Cassia</a> or <a href="https://discord.gg/u77vRWY">yuzu</a> Emulator Official Discord
+For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/XnbXNQM">Cassia.</a>
 
 ---
 
@@ -42,4 +40,4 @@ JeezDisReez.
 Crytonics  
 Danylo  
 Mesa  
-Strato & yuzu testers
+Strato testers
