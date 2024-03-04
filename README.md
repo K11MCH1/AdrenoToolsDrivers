@@ -29,8 +29,7 @@ Thank you for understanding.
 - [Dolphin](docs/dolphin.md)
 - [PPSSPP](docs/ppsspp.md)
 
-For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a>, <a href="https://discord.gg/XnbXNQM">Cassia</a> or <a href="https://discord.gg/u77vRWY">yuzu</a> Emulator Official Discord
-
+For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/XnbXNQM">Cassia.</a>
 ---
 
 ### Special thanks to
