@@ -40,4 +40,4 @@ JeezDisReez.
 Crytonics  
 Danylo  
 Mesa  
-Strato & yuzu testers
+Strato testers
