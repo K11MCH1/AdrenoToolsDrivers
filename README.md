@@ -29,7 +29,7 @@ Thank you for understanding.
 - [Dolphin](docs/dolphin.md)
 - [PPSSPP](docs/ppsspp.md)
 
-For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/XnbXNQM">Cassia.</a>
+For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato.</a>
 
 ---
 
