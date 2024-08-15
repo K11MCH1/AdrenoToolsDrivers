@@ -34,10 +34,11 @@ For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">
 ---
 
 ### Special thanks to
-Bylaws  
-Mark
-JeezDisReez.   
-Crytonics  
-Danylo  
-Mesa  
-Strato testers
+Bylaws<br/>
+Mark<br/>
+JeezDisReez<br/>
+Weab-chan<br/>
+Crytonics<br/>
+Danylo<br/>
+Mesa<br/>
+Strato testers<br/>
