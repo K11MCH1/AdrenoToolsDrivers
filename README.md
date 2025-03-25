@@ -30,7 +30,7 @@ Thank you for understanding.
 - [PPSSPP](docs/ppsspp.md)
 - [Winlator Bionic](docs/winlator.md)
 
-For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/6hrfu9KmcK">EmuGear International Discord</a> Discord.
+For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/6hrfu9KmcK">EmuGear International Discord</a>.
 
 ---
 
