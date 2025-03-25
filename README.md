@@ -7,7 +7,7 @@
 
 ---
 
-A repository containing custom drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a> and <a href="https://github.com/hrydgard/ppsspp">PPSSPP</a>
+A repository containing custom drivers for <a href="https://github.com/skyline-emu/skyline">Skyline</a>, <a href="https://github.com/strato-emu/strato">Strato</a>, <a href="https://github.com/Vita3K/Vita3K-Android">Vita3K</a>, <a href="https://github.com/dolphin-emu/dolphin">Dolphin</a>, <a href="https://github.com/hrydgard/ppsspp">PPSSPP</a> and Winlator Bionic.
 
 - Qualcomm drivers are extracted from qualcomm-soc-using devices, like Smartphones or the Oculus Quest.
 - Turnip drivers are compiled from <a href="https://docs.mesa3d.org/index.html">Mesa</a>.
@@ -28,6 +28,7 @@ Thank you for understanding.
 - [Vita3K](docs/vita3k.md)
 - [Dolphin](docs/dolphin.md)
 - [PPSSPP](docs/ppsspp.md)
+- [Winlator Bionic](docs/winlator.md)
 
 For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato.</a>
 
