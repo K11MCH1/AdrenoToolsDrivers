@@ -29,6 +29,7 @@ Thank you for understanding.
 - [Dolphin](docs/dolphin.md)
 - [PPSSPP](docs/ppsspp.md)
 - [Winlator Bionic](docs/winlator.md)
+- [Citron](docs/citron.md)
 
 For any questions contact KIMCHI on the <a href="https://discord.gg/YhpdhVBmXX">Strato</a> or <a href="https://discord.gg/6hrfu9KmcK">EmuGear International Discord</a>.
 
