@@ -9,6 +9,13 @@ jobs:
   poll:
     runs-on: ubuntu-latest
     steps:
+      - name: Cache last run ID
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: .cache
+          key: dxvk-last-run-id  # Fixed key to persist across runs
+
       - name: Fetch latest successful workflow run
         id: get-run
         run: |
@@ -26,19 +33,12 @@ jobs:
         run: |
           mkdir -p .cache
           CACHE_FILE=".cache/last_run_id"
-          if [ -f "$CACHE_FILE" ] && [ "$(cat $CACHE_FILE)" = "${{ env.run_id }}" ]; then
+          if [ -f "$CACHE_FILE" ] && [ "$(cat "$CACHE_FILE")" = "${{ env.run_id }}" ]; then
             echo "already_notified=true" >> $GITHUB_ENV
           else
-            echo "${{ env.run_id }}" > $CACHE_FILE
+            echo "${{ env.run_id }}" > "$CACHE_FILE"
             echo "already_notified=false" >> $GITHUB_ENV
           fi
-
-      - name: Store cache
-        if: env.already_notified == 'false'
-        uses: actions/cache@v4
-        with:
-          path: .cache
-          key: last-run-${{ env.run_id }}
 
       - name: Send Discord Notification (Native GitHub Embed)
         if: env.already_notified == 'false'
