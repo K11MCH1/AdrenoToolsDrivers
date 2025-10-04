@@ -44,21 +44,15 @@ jobs:
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
             RUN_STATUS_UPPER=$(echo "$RUN_STATUS" | tr '[:lower:]' '[:upper:]')
+            FULL_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id')
             
-            # Fetch recent commits on the branch (last 3 for demo; adjust per_page)
-            COMMITS=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?sha=${RUN_BRANCH}&per_page=3")
-            NUM_COMMITS=$(echo "$COMMITS" | jq '. | length')
-            
-            # Use jq to build the commit list string (avoids bash escaping issues)
-            COMMIT_LIST=$(echo "$COMMITS" | jq -r --arg repo "$REPO_NAME" --arg branch "$RUN_BRANCH" --arg num "$NUM_COMMITS" \
-              '"[\($repo)-\($branch)] \($num) new commits\n" + ( [ .[] | " \(.sha[0:7]) \(.commit.message | split("\n")[0]) - \(.commit.author.name)" ] | join("\n") )')
-            
-            # Set outputs
-            echo "commit_list=$COMMIT_LIST" >> $GITHUB_OUTPUT
+            # Set outputs (single-line only)
+            echo "run_branch=$RUN_BRANCH" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
+            echo "full_sha=$FULL_SHA" >> $GITHUB_OUTPUT
             echo "run_id=1" >> $GITHUB_OUTPUT  # Dummy for if
-            echo "New run detected with $NUM_COMMITS commits on $RUN_BRANCH."
+            echo "New run detected on $RUN_BRANCH."
           else
             echo "run_id=none" >> $GITHUB_OUTPUT
             echo "No completed runs found—skipping notify."
@@ -69,11 +63,41 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          # Build payload with content (plain text like GitHub App notification)
+          # Determine color (not used in text, but for future)
+          COLOR=3447003
+          if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
+            COLOR=65280
+          elif [ "${{ steps.poll.outputs.run_status }}" = "FAILURE" ]; then
+            COLOR=16711680
+          fi
+          
+          # Fetch recent commits on the branch (last 3)
+          COMMITS=$(curl -s -f "https://api.github.com/repos/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/commits?sha=${{ steps.poll.outputs.run_branch }}&per_page=3")
+          NUM_COMMITS=$(echo "$COMMITS" | jq '. | length')
+          
+          # Build commit list with jq (multi-line safe here)
+          COMMIT_LIST=$(echo "$COMMITS" | jq -r \
+            '"[\('${{ env.REPO_NAME }})-\('${{ steps.poll.outputs.run_branch }})\] \('${{ steps.poll.outputs.num_commits }}') new commits\n" + 
+             [ .[] | " \(.sha[0:7]) \(.commit.message | split("\n")[0]) - \(.commit.author.name)" ] | join("\n") ')
+          
+          # Check if merge commit for PR detection
+          COMMIT_MSG=$(echo "$COMMITS" | jq -r '.[0].commit.message')
+          IS_MERGE=$(echo "$COMMIT_MSG" | grep -c "Merge pull request")
+          PR_TEXT=""
+          if [ "$IS_MERGE" -gt 0 ]; then
+            PR_NUMBER=$(echo "$COMMIT_MSG" | sed -n 's/.*#\(.*\) from.*/\1/p')
+            PR_TITLE=$(echo "$COMMIT_MSG" | sed -n 's/Merge pull request #.* from .* \(.*\)/\1/p')
+            PR_TEXT="**[${{ env.REPO_NAME }} Pull request closed: #${PR_NUMBER} ${PR_TITLE}]**\n"
+          fi
+          
+          # Full content
+          CONTENT="${PR_TEXT}${COMMIT_LIST}"
+          
+          # Build JSON
           NOTIF_JSON='{
             "username": "GitHub",
             "avatar_url": "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
-            "content": "**${{ steps.poll.outputs.commit_list }}**"
+            "content": "'"$CONTENT"'"
           }'
           
           # Send via curl
