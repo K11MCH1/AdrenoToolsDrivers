@@ -1,4 +1,11 @@
-# AdrenoTools drivers for Android emulators
+# AdrenoTools drivers for Android emulators  
+
+### DISCLAIMER  
+
+I'm not a programmer. Therefore I do NOT make/code the drivers. Mesa does. I merely "compile" them.
+See it as having a recipe of your favorite sandwich and following it to it's end result. That's What I do.
+So do not wait on me for the next driver of some unsupported chip.  
+Thank you, and thank you for your support!
 
 ---
 
