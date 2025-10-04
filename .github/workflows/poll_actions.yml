@@ -17,30 +17,38 @@ jobs:
           # Target repo details
           REPO_OWNER="FEX-Emu"
           REPO_NAME="FEX"
-          BRANCH="main"  # Assume main; adjust if needed
           
           # Export to GitHub env for later steps
           echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           
-          # Fetch recent commits for second message
-          RECENT_COMMITS=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?per_page=2&sha=${BRANCH}")
-          NUM_COMMITS=$(echo "$RECENT_COMMITS" | jq '. | length')
-          if [ "$NUM_COMMITS" -gt 0 ]; then
-            COMMIT1_SHA=$(echo "$RECENT_COMMITS" | jq -r '.[0].sha | .[:7]')
-            COMMIT1_TITLE=$(echo "$RECENT_COMMITS" | jq -r '.[0].commit.message | split("\n")[0]')
-            COMMIT1_AUTHOR=$(echo "$RECENT_COMMITS" | jq -r '.[0].commit.author.name')
-            COMMIT1_URL=$(echo "$RECENT_COMMITS" | jq -r '.[0].html_url')
-            echo "commit1_line=[${COMMIT1_SHA}](${COMMIT1_URL}) ${COMMIT1_TITLE} - ${COMMIT1_AUTHOR}" >> $GITHUB_OUTPUT
+          # Fetch repo details for icon and stats
+          REPO_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}")
+          REPO_ICON=$(echo "$REPO_INFO" | jq -r '.owner.avatar_url')
+          REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
+          STARS=$(echo "$REPO_INFO" | jq -r '.stargazers_count')
+          FORKS=$(echo "$REPO_INFO" | jq -r '.forks_count')
+          OPEN_ISSUES=$(echo "$REPO_INFO" | jq -r '.open_issues_count')
+          HAS_DISCUSSIONS=$(echo "$REPO_INFO" | jq -r '.has_discussions')
+          
+          # Contributors count (via Link header)
+          CONTRIB_HEADER=$(curl -s -I -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contributors?per_page=1" | grep -i '^link:')
+          CONTRIBUTORS=$(echo "$CONTRIB_HEADER" | sed -n 's/.*page=\([0-9]\+\)>; rel="last".*/\1/p' || echo "0")
+          
+          # Discussions count
+          DISCUSSIONS="0"
+          if [ "$HAS_DISCUSSIONS" = "true" ]; then
+            DISCUSS_HEADER=$(curl -s -I -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/discussions?state=open&per_page=1" | grep -i '^link:')
+            DISCUSSIONS=$(echo "$DISCUSS_HEADER" | sed -n 's/.*page=\([0-9]\+\)>; rel="last".*/\1/p' || echo "0")
           fi
-          if [ "$NUM_COMMITS" -gt 1 ]; then
-            COMMIT2_SHA=$(echo "$RECENT_COMMITS" | jq -r '.[1].sha | .[:7]')
-            COMMIT2_TITLE=$(echo "$RECENT_COMMITS" | jq -r '.[1].commit.message | split("\n")[0]')
-            COMMIT2_AUTHOR=$(echo "$RECENT_COMMITS" | jq -r '.[1].commit.author.name')
-            COMMIT2_URL=$(echo "$RECENT_COMMITS" | jq -r '.[1].html_url')
-            echo "commit2_line=[${COMMIT2_SHA}](${COMMIT2_URL}) ${COMMIT2_TITLE} - ${COMMIT2_AUTHOR}" >> $GITHUB_OUTPUT
-          fi
-          echo "num_commits=$NUM_COMMITS" >> $GITHUB_OUTPUT
+          
+          echo "repo_icon=$REPO_ICON" >> $GITHUB_OUTPUT
+          echo "repo_desc=$REPO_DESC" >> $GITHUB_OUTPUT
+          echo "stars=$STARS" >> $GITHUB_OUTPUT
+          echo "forks=$FORKS" >> $GITHUB_OUTPUT
+          echo "open_issues=$OPEN_ISSUES" >> $GITHUB_OUTPUT
+          echo "contributors=$CONTRIBUTORS" >> $GITHUB_OUTPUT
+          echo "discussions=$DISCUSSIONS" >> $GITHUB_OUTPUT
           
           # Fetch recent runs
           API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=1&status=completed"
@@ -57,64 +65,129 @@ jobs:
             FULL_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id')
             COMMIT_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/${FULL_SHA}")
             COMMIT_MSG_RAW=$(echo "$COMMIT_INFO" | jq -r '.commit.message')
+            SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-7)
             
-            # First line for title
-            TITLE_FIRST_LINE=$(echo "$COMMIT_MSG_RAW" | head -n1 | sed 's/"/\\"/g')
+            # Title: first line of commit message + · repo@short_sha
+            TITLE_FIRST_LINE=$(echo "$COMMIT_MSG_RAW" | head -n1)
+            TITLE="${TITLE_FIRST_LINE} · ${REPO_OWNER}/${REPO_NAME}@${SHORT_SHA}"
             
-            # Second line for description
-            DESCRIPTION=$(echo "$COMMIT_MSG_RAW" | sed -n '2p' | sed 's/"/\\"/g' || echo "$COMMIT_MSG_RAW" | sed 's/"/\\"/g')
+            # Description: second line (PR title for merges) or full message
+            DESCRIPTION=$(echo "$COMMIT_MSG_RAW" | sed -n '2p' || echo "$COMMIT_MSG_RAW")
+            DESCRIPTION=$(echo "$DESCRIPTION" | tr '\n' ' ' | sed 's/"/\\\\"/g' | cut -c1-1000)
             
-            RUN_NAME=$(echo "$RUNS" | jq -r '.workflow_runs[0].name')
+            RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
             RUN_STATUS_UPPER=$(echo "$RUN_STATUS" | tr '[:lower:]' '[:upper:]')
-            RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
-            RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
-            
-            # Sanitize for JSON
-            TITLE="${TITLE_FIRST_LINE}"
-            PR_LIKE="Workflow run completed #${RUN_ID}: ${RUN_NAME} ${RUN_STATUS_UPPER}"
             
             # Set outputs
-            echo "pr_like=$PR_LIKE" >> $GITHUB_OUTPUT
             echo "title=$TITLE" >> $GITHUB_OUTPUT
             echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
-            echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
-            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "run_id=1" >> $GITHUB_OUTPUT  # Dummy for if
             echo "New run detected."
           else
             echo "run_id=none" >> $GITHUB_OUTPUT
             echo "No completed runs found—skipping notify."
           fi
 
-      - name: Send GitHub-Style Messages to Discord
+      - name: Send Rich Embed to Discord
         if: steps.poll.outputs.run_id != 'none'
         env:
           WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          GITHUB_USERNAME="GitHub"
-          GITHUB_AVATAR="https://avatars.githubusercontent.com/u/9919?s=48"  # GitHub org avatar
-          
-          # First message: PR-like for the run
-          MSG1_JSON='{
-            "username": "'$GITHUB_USERNAME'",
-            "avatar_url": "'$GITHUB_AVATAR'",
-            "content": "**'${{ steps.poll.outputs.pr_like }}'**\n[${{ steps.poll.outputs.title }}](${{ steps.poll.outputs.run_url }})"
-          }'
-          curl -H "Content-Type: application/json" -X POST -d "$MSG1_JSON" "$WEBHOOK_URL"
-          
-          # Second message: Commit summary
-          COMMIT_HEADER="[${{ env.REPO_NAME }}-${BRANCH}] ${{ steps.poll.outputs.num_commits }} new commits"
-          COMMIT_BODY="${{ steps.poll.outputs.commit1_line }}\n${{ steps.poll.outputs.commit2_line }}"
-          if [ "${{ steps.poll.outputs.num_commits }}" -eq 1 ]; then
-            COMMIT_BODY="${{ steps.poll.outputs.commit1_line }}"
+          # Determine color and footer icon
+          COLOR=3447003  # Default
+          FOOTER_TEXT="GitHub Actions"
+          GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_default.png"
+          if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
+            COLOR=65280  # Green
+            FOOTER_TEXT="GitHub Actions • All checks have passed"
+            GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"
+          elif [ "${{ steps.poll.outputs.run_status }}" = "FAILURE" ]; then
+            COLOR=16711680  # Red
+            FOOTER_TEXT="GitHub Actions • Some checks have failed"
+            GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_failure.png"
           fi
-          MSG2_JSON='{
-            "username": "'$GITHUB_USERNAME'",
-            "avatar_url": "'$GITHUB_AVATAR'",
-            "content": "'$COMMIT_HEADER'\n'$COMMIT_BODY'"
-          }'
-          curl -H "Content-Type: application/json" -X POST -d "$MSG2_JSON" "$WEBHOOK_URL"
           
-          echo "Messages sent successfully!"
+          # Build embeds with jq
+          EMBED_JSON=$(jq -n \
+            --arg username "GitHub" \
+            --argjson color "$COLOR" \
+            --arg title "${{ steps.poll.outputs.title }}" \
+            --arg desc "${{ steps.poll.outputs.description }}" \
+            --arg runurl "${{ steps.poll.outputs.run_url }}" \
+            --arg repodesc "${{ steps.poll.outputs.repo_desc }}" \
+            --arg repourl "https://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}" \
+            --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
+            --arg contribs "${{ steps.poll.outputs.contributors }}" \
+            --arg issues "${{ steps.poll.outputs.open_issues }}" \
+            --arg discussions "${{ steps.poll.outputs.discussions }}" \
+            --arg stars "${{ steps.poll.outputs.stars }}" \
+            --arg forks "${{ steps.poll.outputs.forks }}" \
+            --arg footertext "$FOOTER_TEXT" \
+            --arg footericon "$GITHUB_ICON" \
+            '{
+              username: $username,
+              avatar_url: "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
+              embeds: [
+                {
+                  author: {
+                    name: "${{ env.REPO_OWNER }} / ${{ env.REPO_NAME }}",
+                    icon_url: $repoicon,
+                    url: $repourl
+                  },
+                  title: $title,
+                  description: $desc,
+                  url: $runurl,
+                  color: $color,
+                  footer: {
+                    text: $footertext,
+                    icon_url: $footericon
+                  }
+                },
+                {
+                  title: "${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}",
+                  description: $repodesc,
+                  url: $repourl,
+                  thumbnail: {
+                    url: $repoicon
+                  },
+                  fields: [
+                    {
+                      name: "Contributors",
+                      value: $contribs,
+                      inline: true
+                    },
+                    {
+                      name: "Issues",
+                      value: $issues,
+                      inline: true
+                    },
+                    {
+                      name: "Discussions",
+                      value: $discussions,
+                      inline: true
+                    },
+                    {
+                      name: "Stars",
+                      value: $stars,
+                      inline: true
+                    },
+                    {
+                      name: "Forks",
+                      value: $forks,
+                      inline: true
+                    }
+                  ]
+                }
+              ]
+            }')
+          
+          # Send via curl
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$EMBED_JSON" \
+               "$WEBHOOK_URL"
+          
+          echo "Embed sent successfully!"
