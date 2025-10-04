@@ -1,32 +1,80 @@
-# This GitHub Actions workflow sends a notification to a Discord channel
-# when any other workflow in the repository completes successfully.
-
-name: Discord Success Notifier
+name: Poll FEX-Emu/FEX Workflows
 
 on:
-  workflow_run:
-    # This specifies that the workflow runs on the completion of other workflows.
-    workflows: ["*"] # Trigger for all workflows in the repository
-    types:
-      - completed
+  schedule:
+    - cron: "*/5 * * * *" # Every 5 minutes
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
-  notify-on-success:
-    # This job only runs if the triggering workflow was successful.
-    # It also prevents the notifier workflow from triggering itself in an infinite loop.
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow.path != github.workflow_path
-    
+  poll:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Send Discord Notification
-        # Uses a popular community action to send messages to Discord.
-        uses: avast/discord-action@v1.0.0
+      - name: Fetch latest successful workflow run from FEX-Emu/FEX
+        id: get-run
+        run: |
+          # Fetch latest successful run from FEX-Emu/FEX
+          response=$(curl -s -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/FEX-Emu/FEX/actions/runs?status=success&per_page=1)
+
+          run_id=$(echo "$response" | jq -r '.workflow_runs[0].id')
+          html_url=$(echo "$response" | jq -r '.workflow_runs[0].html_url')
+          workflow_name=$(echo "$response" | jq -r '.workflow_runs[0].name')
+          branch=$(echo "$response" | jq -r '.workflow_runs[0].head_branch')
+          commit_id=$(echo "$response" | jq -r '.workflow_runs[0].head_sha' | cut -c1-7)
+          commit_url=$(echo "$response" | jq -r '.workflow_runs[0].head_commit.url')
+          author=$(echo "$response" | jq -r '.workflow_runs[0].head_commit.author.name')
+
+          echo "run_id=$run_id" >> $GITHUB_ENV
+          echo "html_url=$html_url" >> $GITHUB_ENV
+          echo "workflow_name=$workflow_name" >> $GITHUB_ENV
+          echo "branch=$branch" >> $GITHUB_ENV
+          echo "commit_id=$commit_id" >> $GITHUB_ENV
+          echo "commit_url=$commit_url" >> $GITHUB_ENV
+          echo "author=$author" >> $GITHUB_ENV
+
+      - name: Check if already notified
+        id: check-cache
+        run: |
+          mkdir -p .cache
+          CACHE_FILE=".cache/last_run_id"
+          if [ -f "$CACHE_FILE" ] && [ "$(cat $CACHE_FILE)" = "${{ env.run_id }}" ]; then
+            echo "already_notified=true" >> $GITHUB_ENV
+          else
+            echo "${{ env.run_id }}" > $CACHE_FILE
+            echo "already_notified=false" >> $GITHUB_ENV
+          fi
+
+      - name: Upload cache
+        if: env.already_notified == 'false'
+        uses: actions/cache@v4
         with:
-          # The webhook URL is stored as a secret for security.
-          url: ${{ secrets.FEXEMU_WEBHOOK }}
-          # The message content to be sent to Discord.
-          # The URL on a new line triggers Discord's native GitHub embed.
-          content: |
-            🎉 Workflow **${{ github.event.workflow_run.name }}** in `${{ github.repository }}` completed successfully!
-            https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+          path: .cache
+          key: last-run-${{ env.run_id }}
+
+      - name: Send Discord Notification
+        if: env.already_notified == 'false'
+        uses: tsickert/discord-webhook@v5
+        with:
+          webhook-url: ${{ secrets.FEXEMU_WEBHOOK }}
+          embed: |
+            {
+              "title": "✅ Workflow Succeeded",
+              "description": "Workflow **${{ env.workflow_name }}** succeeded in [FEX-Emu/FEX](${{ env.html_url }}).",
+              "color": 3066993,
+              "fields": [
+                {
+                  "name": "Branch",
+                  "value": "${{ env.branch }}",
+                  "inline": true
+                },
+                {
+                  "name": "Commit",
+                  "value": "[${{ env.commit_id }}](${{ env.commit_url }})",
+                  "inline": true
+                },
+                {
+                  "name": "Author",
+                  "value": "${{ env.author }}"
+                }
+              ]
+            }
