@@ -85,47 +85,57 @@ jobs:
             COLOR=16711680  # Red
           fi
           
-          # Build embed with jq for proper escaping
-          EMBED_JSON=$(jq -n \
-            --arg username "GitHub" \
+          # Build first embed JSON
+          FIRST_EMBED=$(jq -n \
             --argjson color "$COLOR" \
             --arg title "${{ steps.poll.outputs.title }}" \
             --arg commitlist "${{ steps.poll.outputs.commit_list }}" \
-            --arg branch "${{ steps.poll.outputs.run_branch }}" \
             --arg runurl "${{ steps.poll.outputs.run_url }}" \
-            --arg repo "${{ env.REPO_NAME }}" \
-            --arg numcommits "${{ steps.poll.outputs.num_commits }}" \
             --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
             '{
+              author: {
+                name: "FEX-Emu / FEX",
+                icon_url: $repoicon,
+                url: "https://github.com/FEX-Emu/FEX"
+              },
+              title: $title,
+              description: $commitlist,
+              url: $runurl,
+              color: $color,
+              footer: {
+                text: "GitHub Actions • All checks have passed"
+              }
+            }')
+          
+          # Build second embed JSON
+          SECOND_EMBED=$(jq -n \
+            --argjson color "$COLOR" \
+            --arg branch "${{ steps.poll.outputs.run_branch }}" \
+            --arg numcommits "${{ steps.poll.outputs.num_commits }}" \
+            --arg commitlist "${{ steps.poll.outputs.commit_list }}" \
+            --arg runurl "${{ steps.poll.outputs.run_url }}" \
+            --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
+            '{
+              author: {
+                name: "FEX-Emu / FEX",
+                icon_url: $repoicon
+              },
+              title: "[${{ env.REPO_NAME }}-${branch}] ${numcommits} new commits",
+              description: $commitlist,
+              url: $runurl,
+              color: $color
+            }')
+          
+          # Combine into full payload
+          EMBED_JSON=$(jq -n \
+            --arg username "GitHub" \
+            --arg avatar "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png" \
+            --argjson first_embed "$FIRST_EMBED" \
+            --argjson second_embed "$SECOND_EMBED" \
+            '{
               username: $username,
-              avatar_url: "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
-              embeds: [
-                {
-                  author: {
-                    name: "FEX-Emu / FEX",
-                    icon_url: $repoicon,
-                    url: "https://github.com/FEX-Emu/FEX"
-                  },
-                  title: $title,
-                  description: $commitlist,
-                  url: $runurl,
-                  color: $color,
-                  footer: {
-                    text: "GitHub Actions • All checks have passed"
-                  }
-                },
-                {
-                  author: {
-                    name: "FEX-Emu / FEX",
-                    icon_url: $repoicon
-                  },
-                  title: "[${{ env.REPO_NAME }}-${branch}] ${numcommits} new commits",
-                  description: $commitlist,
-                  url: $runurl,
-                  color: $color,
-                  fields: []
-                }
-              ]
+              avatar_url: $avatar,
+              embeds: [$first_embed, $second_embed]
             }')
           
           # Send via curl
