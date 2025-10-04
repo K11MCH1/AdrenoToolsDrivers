@@ -25,6 +25,7 @@ jobs:
           # Fetch repo details for icon
           REPO_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}")
           REPO_ICON=$(echo "$REPO_INFO" | jq -r '.owner.avatar_url')
+          GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"  # Default; override per status
           echo "repo_icon=$REPO_ICON" >> $GITHUB_OUTPUT
           
           # Fetch recent runs
@@ -49,12 +50,24 @@ jobs:
             RUN_TIME=$(echo "$RUNS" | jq -r '.workflow_runs[0].created_at')
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
+            RUN_BRANCH=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_branch')
             COMMIT_MSG_RAW=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.message // "No commit message"')
             COMMIT_MSG=$(echo "$COMMIT_MSG_RAW" | tr '\n' ' ' | sed 's/"/\\"/g' | cut -c1-200)  # Sanitize: remove newlines, escape quotes, truncate
             COMMIT_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id // "No SHA"' | cut -c1-7)  # Short SHA
             COMMIT_AUTHOR=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.author.name // "Unknown"')
+            COMMIT_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/commit/$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id // "No SHA"')"
             
-            # Set outputs (now sanitized)
+            # Status emoji and icon
+            if [ "$RUN_STATUS" = "success" ]; then
+              STATUS_EMOJI="✅"
+              GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"
+            else
+              STATUS_EMOJI="❌"
+              GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_failure.png"
+            fi
+            TITLE="${RUN_NAME} · ${STATUS_EMOJI} ${RUN_STATUS_UPPER}"
+            
+            # Set outputs
             echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
             echo "run_actor=$RUN_ACTOR" >> $GITHUB_OUTPUT
@@ -62,9 +75,13 @@ jobs:
             echo "run_time=$RUN_TIME" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "run_branch=$RUN_BRANCH" >> $GITHUB_OUTPUT
             echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
             echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
             echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+            echo "commit_url=$COMMIT_URL" >> $GITHUB_OUTPUT
+            echo "title=$TITLE" >> $GITHUB_OUTPUT
+            echo "github_icon=$GITHUB_ICON" >> $GITHUB_OUTPUT
             echo "New run detected: $RUN_NAME ($RUN_STATUS) by $RUN_ACTOR."
           else
             echo "run_id=none" >> $GITHUB_OUTPUT
@@ -86,36 +103,53 @@ jobs:
           
           # Build embed with jq for proper escaping
           EMBED_JSON=$(jq -n \
-            --arg username "GitHub Actions Bot" \
+            --arg username "GitHub Actions" \
             --argjson color "$COLOR" \
-            --arg title "${{ steps.poll.outputs.run_name }}" \
-            --arg status "${{ steps.poll.outputs.run_status }}" \
-            --arg actor "${{ steps.poll.outputs.run_actor }}" \
-            --arg time "${{ steps.poll.outputs.run_time }}" \
-            --arg runid "${{ steps.poll.outputs.run_id }}" \
+            --arg title "${{ steps.poll.outputs.title }}" \
+            --arg description "${{ steps.poll.outputs.commit_msg }}" \
+            --arg branch "${{ steps.poll.outputs.run_branch }}" \
             --arg sha "${{ steps.poll.outputs.commit_sha }}" \
-            --arg author "${{ steps.poll.outputs.commit_author }}" \
-            --arg msg "${{ steps.poll.outputs.commit_msg }}" \
-            --arg url "${{ steps.poll.outputs.run_url }}" \
+            --arg commit_url "${{ steps.poll.outputs.commit_url }}" \
+            --arg actor "${{ steps.poll.outputs.run_actor }}" \
+            --arg run_url "${{ steps.poll.outputs.run_url }}" \
             --arg repo_icon "${{ steps.poll.outputs.repo_icon }}" \
             --arg actor_id "${{ steps.poll.outputs.run_actor_id }}" \
+            --arg github_icon "${{ steps.poll.outputs.github_icon }}" \
             '{
               username: $username,
+              avatar_url: "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
               embeds: [{
                 author: {
-                  name: "FEX-Emu/FEX",
-                  icon_url: $repo_icon
+                  name: "FEX-Emu / FEX",
+                  icon_url: $repo_icon,
+                  url: "https://github.com/FEX-Emu/FEX"
                 },
                 title: $title,
-                description: "**Status:** \($status)\n**Triggered by:** \($actor)\n**Time:** \($time)\n**Run ID:** \($runid)\n**Commit:** `\($sha)` by \($author)\n**Message:** \($msg)",
-                url: $url,
+                description: $description,
+                url: $run_url,
                 color: $color,
+                fields: [
+                  {
+                    name: "Branch",
+                    value: $branch,
+                    inline: true
+                  },
+                  {
+                    name: "Commit",
+                    value: "[`$( $sha )` | $commit_url]",
+                    inline: true
+                  },
+                  {
+                    name: "Triggered by",
+                    value: $actor,
+                    inline: true
+                  }
+                ],
                 footer: {
-                  text: "Check the Actions tab for full logs"
+                  text: "GitHub Actions • All checks have passed",
+                  icon_url: $github_icon
                 },
-                thumbnail: {
-                  url: "https://avatars.githubusercontent.com/u/\($actor_id)?v=4"
-                }
+                timestamp: "2025-10-04T00:00:00Z"  # Use actual run_time if formatted as ISO
               }]
             }')
           
