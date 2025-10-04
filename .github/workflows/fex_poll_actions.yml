@@ -1,4 +1,4 @@
-name: Monitor FEX-Emu/FEX Workflow Runs
+name: FEX-Emu Workflow Runs
 
 on:
   schedule:
