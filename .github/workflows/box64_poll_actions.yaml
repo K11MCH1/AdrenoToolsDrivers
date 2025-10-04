@@ -44,5 +44,5 @@ jobs:
         if: env.already_notified == 'false'
         uses: tsickert/discord-webhook@v5.5.0
         with:
-          webhook-url: ${{ secrets.FEXEMU_WEBHOOK }}
+          webhook-url: ${{ secrets.BOX64_WEBHOOK }}
           content: "${{ env.html_url }}"
