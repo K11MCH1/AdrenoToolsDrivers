@@ -74,7 +74,7 @@ jobs:
             "embeds": [
               {
                 "title": "New Workflow Run in FEX-Emu/FEX",
-                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ steps.poll.outputs.run_status | uppercase }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
+                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ toUpper(steps.poll.outputs.run_status) }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
                 "url": "${{ steps.poll.outputs.run_url }}",
                 "color": '$COLOR',
                 "footer": {
