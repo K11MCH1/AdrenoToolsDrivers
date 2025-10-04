@@ -9,37 +9,52 @@ jobs:
   poll-and-notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: Poll GitHub API for workflow runs
         id: poll
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Optional; not needed for public repos
         run: |
           # Target repo details (replace with your external repo)
-          OWNER="FEX-Emu"  # e.g., "microsoft"
-          REPO="FEX"       # e.g., "vscode"
+          REPO_OWNER="FEX-Emu"
+          REPO_NAME="FEX"
           
-          # Fetch recent runs (last 10, adjustable; use since=YYYY-MM-DD for date filtering)
-          RUNS=$(curl -s "https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?per_page=10&status=completed")
+          # Export to GitHub env for later steps
+          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
+          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           
-          # Simple script to check for new completed runs (store last seen ID in a file or secret)
-          # For demo, echo recent runs; in production, compare to previous state
-          echo "$RUNS" | jq -r '.workflow_runs[] | "\(.name) by \(.actor.login) on \(.created_at) - Status: \(.conclusion) - URL: \(.html_url)"'
+          # Fetch recent runs
+          API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=10&status=completed"
+          RUNS=$(curl -s -f "$API_URL")  # -f fails on HTTP errors
           
-          # Set output for next step (e.g., last run ID to track changes)
-          LAST_RUN_ID=$(echo "$RUNS" | jq -r '.[0].id')
-          echo "last_run_id=$LAST_RUN_ID" >> $GITHUB_OUTPUT
+          # Check for API errors (e.g., 404 Not Found)
+          if echo "$RUNS" | jq -e '.message? == "Not Found"' >/dev/null; then
+            echo "Error: Repo ${REPO_OWNER}/${REPO_NAME} not found."
+            exit 1
+          fi
+          
+          # Get count and handle empty
+          RUNS_COUNT=$(echo "$RUNS" | jq '.workflow_runs | length')
+          if [ "$RUNS_COUNT" -gt 0 ]; then
+            # List recent runs for logs
+            echo "$RUNS" | jq -r '.workflow_runs[] | "\(.name) by \(.actor.login) on \(.created_at) - Status: \(.conclusion) - URL: \(.html_url)"'
+            
+            # Set last run ID
+            LAST_RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
+            echo "last_run_id=$LAST_RUN_ID" >> $GITHUB_OUTPUT
+            echo "New/updated run detected (ID: $LAST_RUN_ID)."
+          else
+            echo "last_run_id=none" >> $GITHUB_OUTPUT
+            echo "No completed runs found—skipping notify."
+          fi
 
       - name: Send to Discord if new runs
-        if: steps.poll.outputs.last_run_id != ''
+        if: steps.poll.outputs.last_run_id != 'none'
         uses: appleboy/discord-action@v1.2.0
         with:
           webhook_url: ${{ secrets.FEXEMU_WEBHOOK }}
           message: |
-            **New Action Run in `${{ env.FEX-Emu }}/${{ env.FEX }}`!**
-            Check details: https://github.com/${{ env.FEX-Emu }}/${{ env.FEX }}/actions
+            **New Action Run in `${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}`!**
+            Check details: https://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/actions
             (Last run ID: ${{ steps.poll.outputs.last_run_id }})
           color: "#00ff00"  # Green for success; use "#ff0000" for failures, etc.
           # username: "GitHub Poller Bot"  # Uncomment for custom bot name
