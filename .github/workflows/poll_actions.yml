@@ -18,8 +18,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Optional; not needed for public repos
         run: |
           # Target repo details (replace with your external repo)
-          OWNER="owner_username"  # e.g., "microsoft"
-          REPO="repo_name"       # e.g., "vscode"
+          OWNER="FEX-Emu"  # e.g., "microsoft"
+          REPO="FEX"       # e.g., "vscode"
           
           # Fetch recent runs (last 10, adjustable; use since=YYYY-MM-DD for date filtering)
           RUNS=$(curl -s "https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?per_page=10&status=completed")
@@ -33,9 +33,13 @@ jobs:
           echo "last_run_id=$LAST_RUN_ID" >> $GITHUB_OUTPUT
 
       - name: Send to Discord if new runs
-        if: steps.poll.outputs.last_run_id != ''  # Customize condition for new/changed runs
-        uses: Ilshidur/action-discord@v2
+        if: steps.poll.outputs.last_run_id != ''
+        uses: appleboy/discord-action@v1.2.0
         with:
-          webhook: ${{ secrets.FEXEMU_WEBHOOK }}
-          content: "New Action Run in ${{ env.FEX-Emu }}/${{ env.FEX }}! Check details: https://github.com/${{ env.FEX-Emu }}/${{ env.FEX }}/actions"
-          # Optional: Embed with run details from step output
+          webhook_url: ${{ secrets.FEXEMU_WEBHOOK }}
+          message: |
+            **New Action Run in `${{ env.FEX-Emu }}/${{ env.FEX }}`!**
+            Check details: https://github.com/${{ env.FEX-Emu }}/${{ env.FEX }}/actions
+            (Last run ID: ${{ steps.poll.outputs.last_run_id }})
+          color: "#00ff00"  # Green for success; use "#ff0000" for failures, etc.
+          # username: "GitHub Poller Bot"  # Uncomment for custom bot name
