@@ -50,23 +50,13 @@ jobs:
             NUM_COMMITS=$(echo "$COMMITS" | jq '. | length')
             
             # Use jq to build the commit list string (avoids bash escaping issues)
-            COMMIT_LIST=$(echo "$COMMITS" | jq -r --arg repo "$REPO_NAME" --arg branch "$RUN_BRANCH' 'to_string' '(
-              "[\($repo)-\($branch)] \($numcommits) new commits\n" +
-              [.[].sha[0:7] as $sha | .[].commit.message | split("\n")[0] as $msg | .[].commit.author.name as $author |
-                " \($sha) \($msg) - \($author)"
-              ] | join("\n")
-            )')
-            
-            # Title for first embed
-            TITLE="[${REPO_NAME}-${RUN_BRANCH}] ${NUM_COMMITS} new commits"
+            COMMIT_LIST=$(echo "$COMMITS" | jq -r --arg repo "$REPO_NAME" --arg branch "$RUN_BRANCH" --arg num "$NUM_COMMITS" \
+              '"[\($repo)-\($branch)] \($num) new commits\n" + ( [ .[] | " \(.sha[0:7]) \(.commit.message | split("\n")[0]) - \(.commit.author.name)" ] | join("\n") )')
             
             # Set outputs
-            echo "title=$TITLE" >> $GITHUB_OUTPUT
             echo "commit_list=$COMMIT_LIST" >> $GITHUB_OUTPUT
-            echo "run_branch=$RUN_BRANCH" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
-            echo "num_commits=$NUM_COMMITS" >> $GITHUB_OUTPUT
             echo "run_id=1" >> $GITHUB_OUTPUT  # Dummy for if
             echo "New run detected with $NUM_COMMITS commits on $RUN_BRANCH."
           else
@@ -74,76 +64,22 @@ jobs:
             echo "No completed runs found—skipping notify."
           fi
 
-      - name: Send Rich Embed to Discord
+      - name: Send Notification to Discord
         if: steps.poll.outputs.run_id != 'none'
         env:
           WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          # Determine color
-          COLOR=3447003  # Default blue
-          if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
-            COLOR=65280  # Green
-          elif [ "${{ steps.poll.outputs.run_status }}" = "FAILURE" ]; then
-            COLOR=16711680  # Red
-          fi
-          
-          # Build first embed JSON
-          FIRST_EMBED=$(jq -n \
-            --argjson color "$COLOR" \
-            --arg title "${{ steps.poll.outputs.title }}" \
-            --arg commitlist "${{ steps.poll.outputs.commit_list }}" \
-            --arg runurl "${{ steps.poll.outputs.run_url }}" \
-            --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
-            '{
-              author: {
-                name: "FEX-Emu / FEX",
-                icon_url: $repoicon,
-                url: "https://github.com/FEX-Emu/FEX"
-              },
-              title: $title,
-              description: $commitlist,
-              url: $runurl,
-              color: $color,
-              footer: {
-                text: "GitHub Actions • All checks have passed"
-              }
-            }')
-          
-          # Build second embed JSON
-          SECOND_EMBED=$(jq -n \
-            --argjson color "$COLOR" \
-            --arg branch "${{ steps.poll.outputs.run_branch }}" \
-            --arg numcommits "${{ steps.poll.outputs.num_commits }}" \
-            --arg commitlist "${{ steps.poll.outputs.commit_list }}" \
-            --arg runurl "${{ steps.poll.outputs.run_url }}" \
-            --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
-            '{
-              author: {
-                name: "FEX-Emu / FEX",
-                icon_url: $repoicon
-              },
-              title: "[\($branch)] \($numcommits) new commits",
-              description: $commitlist,
-              url: $runurl,
-              color: $color
-            }')
-          
-          # Combine into full payload
-          EMBED_JSON=$(jq -n \
-            --arg username "GitHub" \
-            --arg avatar "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png" \
-            --argjson first_embed "$FIRST_EMBED" \
-            --argjson second_embed "$SECOND_EMBED" \
-            '{
-              username: $username,
-              avatar_url: $avatar,
-              embeds: [$first_embed, $second_embed]
-            }')
+          # Build payload with content (plain text like GitHub App notification)
+          NOTIF_JSON='{
+            "username": "GitHub",
+            "avatar_url": "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
+            "content": "**${{ steps.poll.outputs.commit_list }}**"
+          }'
           
           # Send via curl
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "$EMBED_JSON" \
+               -d "$NOTIF_JSON" \
                "$WEBHOOK_URL"
           
-          echo "Embed sent successfully!"
+          echo "Notification sent successfully!"
