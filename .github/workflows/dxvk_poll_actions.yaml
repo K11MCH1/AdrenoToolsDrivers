@@ -1,0 +1,48 @@
+name: Poll BOX64 Workflows
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # Every 5 minutes
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch latest successful workflow run
+        id: get-run
+        run: |
+          response=$(curl -s -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/doitsujin/dxvk/actions/runs?status=success&per_page=1)
+
+          run_id=$(echo "$response" | jq -r '.workflow_runs[0].id')
+          html_url=$(echo "$response" | jq -r '.workflow_runs[0].html_url')
+
+          echo "run_id=$run_id" >> $GITHUB_ENV
+          echo "html_url=$html_url" >> $GITHUB_ENV
+
+      - name: Check if already notified
+        id: check-cache
+        run: |
+          mkdir -p .cache
+          CACHE_FILE=".cache/last_run_id"
+          if [ -f "$CACHE_FILE" ] && [ "$(cat $CACHE_FILE)" = "${{ env.run_id }}" ]; then
+            echo "already_notified=true" >> $GITHUB_ENV
+          else
+            echo "${{ env.run_id }}" > $CACHE_FILE
+            echo "already_notified=false" >> $GITHUB_ENV
+          fi
+
+      - name: Store cache
+        if: env.already_notified == 'false'
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: last-run-${{ env.run_id }}
+
+      - name: Send Discord Notification (Native GitHub Embed)
+        if: env.already_notified == 'false'
+        uses: tsickert/discord-webhook@v5.5.0
+        with:
+          webhook-url: ${{ secrets.DXVK_WEBHOOK }}
+          content: "${{ env.html_url }}"
