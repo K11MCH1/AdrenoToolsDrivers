@@ -22,6 +22,11 @@ jobs:
           echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           
+          # Fetch repo details for icon
+          REPO_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}")
+          REPO_ICON=$(echo "$REPO_INFO" | jq -r '.owner.avatar_url')
+          echo "repo_icon=$REPO_ICON" >> $GITHUB_OUTPUT
+          
           # Fetch recent runs
           API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=1&status=completed"  # Just the latest for notify
           RUNS=$(curl -s -f "$API_URL")
@@ -44,6 +49,9 @@ jobs:
             RUN_TIME=$(echo "$RUNS" | jq -r '.workflow_runs[0].created_at')
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
+            COMMIT_MSG=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.message // "No commit message"')
+            COMMIT_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id // "No SHA"')
+            COMMIT_AUTHOR=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.author.name // "Unknown"')
             
             # Set outputs
             echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
@@ -53,6 +61,9 @@ jobs:
             echo "run_time=$RUN_TIME" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+            echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+            echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
             echo "New run detected: $RUN_NAME ($RUN_STATUS) by $RUN_ACTOR."
           else
             echo "run_id=none" >> $GITHUB_OUTPUT
@@ -76,8 +87,12 @@ jobs:
             "username": "GitHub Actions Bot",
             "embeds": [
               {
-                "title": "New Workflow Run in FEX-Emu/FEX",
-                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ steps.poll.outputs.run_status }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
+                "author": {
+                  "name": "FEX-Emu/FEX",
+                  "icon_url": "${{ steps.poll.outputs.repo_icon }}"
+                },
+                "title": "${{ steps.poll.outputs.run_name }}",
+                "description": "**Status:** ${{ steps.poll.outputs.run_status }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}\n**Commit:** `${{ steps.poll.outputs.commit_sha }}` by ${{ steps.poll.outputs.commit_author }}\n**Message:** ${{ steps.poll.outputs.commit_msg }}",
                 "url": "${{ steps.poll.outputs.run_url }}",
                 "color": '$COLOR',
                 "footer": {
