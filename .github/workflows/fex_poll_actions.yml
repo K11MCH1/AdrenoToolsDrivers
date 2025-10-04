@@ -15,112 +15,98 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Create and run monitor script
+      - name: Fetch and notify new successful runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FEXEMU_WEBHOOK: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          cat > monitor.py << 'EOF'
-          import json
-          import os
-          import requests
-          import subprocess
-          from datetime import datetime
-
           # Configuration
-          OWNER = 'FEX-Emu'
-          REPO = 'FEX'
-          API_BASE = 'https://api.github.com/repos/{}/{}/'.format(OWNER, REPO)
-          STATE_FILE = '.github/state.json'
-          WEBHOOK = os.environ['FEXEMU_WEBHOOK']
-          TOKEN = os.environ['GITHUB_TOKEN']
-          HEADERS = {'Authorization': 'token {}'.format(TOKEN), 'User-Agent': 'FEX-Monitor'}
+          OWNER="FEX-Emu"
+          REPO="FEX"
+          API_BASE="https://api.github.com/repos/${OWNER}/${REPO}/"
+          STATE_FILE=".github/state.json"
+          mkdir -p "$(dirname "$STATE_FILE")"
+
+          # Headers
+          HEADERS=("Authorization: token ${GITHUB_TOKEN}" "User-Agent: FEX-Monitor" "Accept: application/vnd.github.v3+json")
 
           # Load last notified run ID
-          last_id = 0
-          if os.path.exists(STATE_FILE):
-              with open(STATE_FILE, 'r') as f:
-                  data = json.load(f)
-                  last_id = data.get('last_run_id', 0)
+          if [ -f "$STATE_FILE" ]; then
+            LAST_ID=$(jq -r '.last_run_id // 0' "$STATE_FILE")
+          else
+            LAST_ID=0
+          fi
 
-          old_last_id = last_id
-          new_run_ids = []
+          OLD_LAST_ID=$LAST_ID
+          UPDATED=false
 
           # Fetch recent successful workflow runs (latest first)
-          runs_url = API_BASE + 'actions/runs'
-          params = {
-              'per_page': 10,
-              'status': 'success',
-              'sort': 'timestamp',
-              'direction': 'desc'
-          }
-          response = requests.get(runs_url, params=params, headers=HEADERS)
-          response.raise_for_status()
-          workflow_runs = response.json().get('workflow_runs', [])
+          RUNS_URL="${API_BASE}actions/runs?per_page=10&status=success&sort=timestamp&direction=desc"
+          RUNS_RESPONSE=$(curl -s -H "${HEADERS[0]}" -H "${HEADERS[1]}" -H "${HEADERS[2]}" "$RUNS_URL")
+          WORKFLOW_RUNS=$(echo "$RUNS_RESPONSE" | jq -r '.workflow_runs[]? | select(.id > '"$LAST_ID"') | .id')
 
           # Process each new run
-          for run in workflow_runs:
-              run_id = run['id']
-              if run_id <= last_id:
-                  break  # Since sorted desc, no more new ones
+          echo "$WORKFLOW_RUNS" | while read -r RUN_ID; do
+            # Get run details
+            RUN_DETAILS_URL="${API_BASE}actions/runs/${RUN_ID}"
+            RUN_DETAILS=$(curl -s -H "${HEADERS[0]}" -H "${HEADERS[1]}" -H "${HEADERS[2]}" "$RUN_DETAILS_URL" | jq '.')
 
-              # Get commit details
-              commit_url = API_BASE + 'commits/{}'.format(run['head_sha'])
-              commit_response = requests.get(commit_url, headers=HEADERS)
-              commit_response.raise_for_status()
-              commit_data = commit_response.json()
+            RUN_NAME=$(echo "$RUN_DETAILS" | jq -r '.name')
+            RUN_URL=$(echo "$RUN_DETAILS" | jq -r '.html_url')
+            HEAD_SHA=$(echo "$RUN_DETAILS" | jq -r '.head_sha')
+            HEAD_BRANCH=$(echo "$RUN_DETAILS" | jq -r '.head_branch // "Unknown"')
+            UPDATED_AT=$(echo "$RUN_DETAILS" | jq -r '.updated_at')
 
-              commit_message = commit_data['commit']['message'].split('\n')[0] if commit_data['commit']['message'] else 'No message'
-              author_login = commit_data.get('author', {}).get('login', 'Unknown')
-              head_branch = run.get('head_branch', 'Unknown')
+            # Get commit details
+            COMMIT_URL="${API_BASE}commits/${HEAD_SHA}"
+            COMMIT_DETAILS=$(curl -s -H "${HEADERS[0]}" -H "${HEADERS[1]}" -H "${HEADERS[2]}" "$COMMIT_URL" | jq '.')
 
-              # Craft Discord embed (GitHub-style)
-              embed = {
-                  'title': '{} Succeeded'.format(run['name']),
-                  'url': run['html_url'],
-                  'description': commit_message,
-                  'color': 65280,  # Green
-                  'fields': [
-                      {'name': 'Branch', 'value': head_branch, 'inline': True},
-                      {'name': 'Author', 'value': author_login, 'inline': True},
-                      {'name': 'Updated', 'value': run['updated_at'], 'inline': True}
-                  ],
-                  'timestamp': run['updated_at']
-              }
-              payload = {'embeds': [embed]}
+            COMMIT_MESSAGE=$(echo "$COMMIT_DETAILS" | jq -r '.commit.message // "No message"' | head -1)
+            AUTHOR_LOGIN=$(echo "$COMMIT_DETAILS" | jq -r '.author.login // "Unknown"')
 
-              # Send to Discord webhook
-              webhook_response = requests.post(WEBHOOK, json=payload)
-              webhook_response.raise_for_status()
+            # Craft Discord embed JSON
+            EMBED=$(jq -n \
+              --arg title "${RUN_NAME} Succeeded" \
+              --arg url "$RUN_URL" \
+              --arg desc "$COMMIT_MESSAGE" \
+              --arg branch "$HEAD_BRANCH" \
+              --arg author "$AUTHOR_LOGIN" \
+              --arg updated "$UPDATED_AT" \
+              '{
+                title: $title,
+                url: $url,
+                description: $desc,
+                color: 65280,
+                fields: [
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "Author", value: $author, inline: true},
+                  {name: "Updated", value: $updated, inline: true}
+                ],
+                timestamp: $updated
+              }')
 
-              new_run_ids.append(run_id)
-              print('Notified for run ID: {}'.format(run_id))
+            PAYLOAD=$(jq -n --argjson embed "$EMBED" '{embeds: [$embed]}')
 
-          # Update last ID to the highest new one
-          if new_run_ids:
-              last_id = max(new_run_ids)
+            # Send to Discord webhook
+            curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$FEXEMU_WEBHOOK"
 
-          # Save state
-          os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-          with open(STATE_FILE, 'w') as f:
-              json.dump({'last_run_id': last_id}, f, indent=2)
+            echo "Notified for run ID: $RUN_ID"
+            if [ "$LAST_ID" -lt "$RUN_ID" ]; then
+              LAST_ID="$RUN_ID"
+              UPDATED=true
+            fi
+          done
 
-          # Commit and push if changed
-          if last_id > old_last_id:
-              subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
-              subprocess.run(['git', 'config', 'user.email', 'github-actions[bot]@users.noreply.github.com'], check=True)
-              subprocess.run(['git', 'add', STATE_FILE], check=True)
-              subprocess.run(['git', 'commit', '-m', 'Update last notified run ID: {}'.format(last_id)], check=True)
-              subprocess.run(['git', 'push'], check=True)
-              print('Updated state and pushed commit')
-          else:
-              print('No new successful runs to notify')
-          EOF
-
-          python3 monitor.py
+          # Update state if changed
+          if [ "$UPDATED" = true ]; then
+            echo "{\"last_run_id\": $LAST_ID}" > "$STATE_FILE"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "$STATE_FILE"
+            git commit -m "Update last notified run ID: $LAST_ID"
+            git push
+            echo "Updated state and pushed commit"
+          else
+            echo "No new successful runs to notify"
+          fi
 ```
