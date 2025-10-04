@@ -1,60 +1,70 @@
-name: Poll DXVK Workflows
+name: DXVK Workflow Runs
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # Every 5 minutes
-  workflow_dispatch:
+    - cron: '*/10 * * * *'
 
 jobs:
-  poll:
+  monitor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo (to store last_run_id)
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Fetch previous run ID
-        id: prev
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get last sent run ID
+        id: get_last_id
         run: |
-          LAST_RUN_FILE=".last_run_id"
-          if [ -f "$LAST_RUN_FILE" ]; then
-            echo "last_run_id=$(cat $LAST_RUN_FILE)" >> $GITHUB_ENV
+          if [ -f last_run_id.txt ]; then
+            LAST_ID=$(cat last_run_id.txt)
           else
-            echo "last_run_id=" >> $GITHUB_ENV
+            LAST_ID=0
           fi
+          echo "last_id=$LAST_ID" >> $GITHUB_OUTPUT
 
-      - name: Fetch recent successful workflow runs
+      - name: Fetch recent workflow runs from FEX-Emu/FEX
+        id: fetch_runs
         run: |
-          curl -s -H "Accept: application/vnd.github+json" \
-               -H "X-GitHub-Api-Version: 2022-11-28" \
-               https://api.github.com/repos/doitsujin/dxvk/actions/runs?status=success&per_page=10&sort=created&direction=desc \
-               > recent_runs.json
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/doitsujin/dxvk/actions/runs?per_page=20)
+          echo "$RESPONSE" > runs.json
 
-      - name: Check for new runs
-        id: check
+      - name: Process and notify on new successful push-triggered runs
+        env:
+          WEBHOOK_URL: ${{ secrets.DXVK_WEBHOOK }}
+          LAST_ID: ${{ steps.get_last_id.outputs.last_id }}
         run: |
-          latest_id=$(jq -r '.workflow_runs[0].id // empty' recent_runs.json)
-          LAST_ID="${{ env.last_run_id }}"
-          if [ -z "$latest_id" ] || [ "$latest_id" = "$LAST_ID" ]; then
-            echo "already_notified=true" >> $GITHUB_ENV
-          else
-            new_runs=$(jq -r --arg last_id "$LAST_ID" '.workflow_runs[] | select(.id > ($last_id|tonumber)) | .html_url' recent_runs.json)
-            echo "already_notified=false" >> $GITHUB_ENV
-            echo "notification_message=New DXVK workflow run(s):\n$new_runs" >> $GITHUB_ENV
-            echo "$latest_id" > .last_run_id
+          # Extract runs that are completed, successful, triggered by push, and id > last_id
+          NEW_RUNS=$(jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success" and .event == "push" and .id > '"$LAST_ID"') | {id: .id, url: .html_url}] | sort_by(.id)' runs.json)
+
+          # Get the number of new runs
+          COUNT=$(echo "$NEW_RUNS" | jq 'length')
+
+          if [ "$COUNT" -gt 0 ]; then
+            MAX_ID=0
+            for i in $(seq 0 $(($COUNT - 1))); do
+              RUN_ID=$(echo "$NEW_RUNS" | jq -r ".[$i].id")
+              RUN_URL=$(echo "$NEW_RUNS" | jq -r ".[$i].url")
+
+              # Send notification to Discord webhook (sending the URL should trigger native embed)
+              curl -H "Content-Type: application/json" -d "{\"content\": \"$RUN_URL\"}" "$WEBHOOK_URL"
+
+              # Update max_id
+              if [ "$RUN_ID" -gt "$MAX_ID" ]; then
+                MAX_ID=$RUN_ID
+              fi
+            done
+
+            # Update last_run_id.txt with the max id
+            echo "$MAX_ID" > last_run_id.txt
+
+            # Commit and push the updated file
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "actions@github.com"
+            git add last_run_id.txt
+            git commit -m "Update last successful run ID"
+            git push
           fi
-
-      - name: Send Discord Notification
-        if: env.already_notified == 'false'
-        uses: tsickert/discord-webhook@v5.5.0
-        with:
-          webhook-url: ${{ secrets.DXVK_WEBHOOK }}
-          content: ${{ env.notification_message }}
-
-      - name: Commit updated last_run_id
-        if: env.already_notified == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .last_run_id
-          git commit -m "Update last_run_id"
-          git push
