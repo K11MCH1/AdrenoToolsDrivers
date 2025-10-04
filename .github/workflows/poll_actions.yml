@@ -3,7 +3,7 @@ name: Poll FEX-Emu/FEX Workflows
 on:
   schedule:
     - cron: "*/5 * * * *" # Every 5 minutes
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch: # Manual trigger
 
 jobs:
   poll:
@@ -17,19 +17,9 @@ jobs:
 
           run_id=$(echo "$response" | jq -r '.workflow_runs[0].id')
           html_url=$(echo "$response" | jq -r '.workflow_runs[0].html_url')
-          workflow_name=$(echo "$response" | jq -r '.workflow_runs[0].name')
-          branch=$(echo "$response" | jq -r '.workflow_runs[0].head_branch')
-          commit_id=$(echo "$response" | jq -r '.workflow_runs[0].head_sha' | cut -c1-7)
-          commit_url=$(echo "$response" | jq -r '.workflow_runs[0].head_commit.url')
-          author=$(echo "$response" | jq -r '.workflow_runs[0].head_commit.author.name')
 
           echo "run_id=$run_id" >> $GITHUB_ENV
           echo "html_url=$html_url" >> $GITHUB_ENV
-          echo "workflow_name=$workflow_name" >> $GITHUB_ENV
-          echo "branch=$branch" >> $GITHUB_ENV
-          echo "commit_id=$commit_id" >> $GITHUB_ENV
-          echo "commit_url=$commit_url" >> $GITHUB_ENV
-          echo "author=$author" >> $GITHUB_ENV
 
       - name: Check if already notified
         id: check-cache
@@ -50,16 +40,9 @@ jobs:
           path: .cache
           key: last-run-${{ env.run_id }}
 
-      - name: Send Discord Notification
+      - name: Send Discord Notification (Native GitHub Embed)
         if: env.already_notified == 'false'
         uses: tsickert/discord-webhook@v5.5.0
         with:
           webhook-url: ${{ secrets.FEXEMU_WEBHOOK }}
-          embed-title: "✅ Workflow Succeeded"
-          embed-url: ${{ env.html_url }}
-          embed-description: "Workflow **${{ env.workflow_name }}** succeeded in [FEX-Emu/FEX](${{ env.html_url }})."
-          embed-color: 3066993
-          embed-author-name: "${{ env.author }}"
-          embed-fields: |
-            Branch;${{ env.branch }};true
-            Commit;[${{ env.commit_id }}](${{ env.commit_url }});true
+          content: "${{ env.html_url }}"
