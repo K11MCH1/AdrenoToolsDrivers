@@ -2,8 +2,8 @@ name: Poll FEX-Emu/FEX Workflows
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
+    - cron: "*/5 * * * *" # Every 5 minutes
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   poll:
@@ -43,7 +43,7 @@ jobs:
             echo "already_notified=false" >> $GITHUB_ENV
           fi
 
-      - name: Cache store (so cache persists across runs)
+      - name: Store cache
         if: env.already_notified == 'false'
         uses: actions/cache@v4
         with:
@@ -55,25 +55,11 @@ jobs:
         uses: tsickert/discord-webhook@v5.5.0
         with:
           webhook-url: ${{ secrets.FEXEMU_WEBHOOK }}
-          embed: |
-            {
-              "title": "✅ Workflow Succeeded",
-              "description": "Workflow **${{ env.workflow_name }}** succeeded in [FEX-Emu/FEX](${{ env.html_url }}).",
-              "color": 3066993,
-              "fields": [
-                {
-                  "name": "Branch",
-                  "value": "${{ env.branch }}",
-                  "inline": true
-                },
-                {
-                  "name": "Commit",
-                  "value": "[${{ env.commit_id }}](${{ env.commit_url }})",
-                  "inline": true
-                },
-                {
-                  "name": "Author",
-                  "value": "${{ env.author }}"
-                }
-              ]
-            }
+          embed-title: "✅ Workflow Succeeded"
+          embed-url: ${{ env.html_url }}
+          embed-description: "Workflow **${{ env.workflow_name }}** succeeded in [FEX-Emu/FEX](${{ env.html_url }})."
+          embed-color: 3066993
+          embed-author-name: "${{ env.author }}"
+          embed-fields: |
+            Branch;${{ env.branch }};true
+            Commit;[${{ env.commit_id }}](${{ env.commit_url }});true
