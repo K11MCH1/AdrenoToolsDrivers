@@ -49,18 +49,20 @@ jobs:
             COMMITS=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?sha=${RUN_BRANCH}&per_page=3")
             NUM_COMMITS=$(echo "$COMMITS" | jq '. | length')
             
-            # Build commit list for description
-            COMMIT_LIST=$(echo "$COMMITS" | jq -r '.[].commit.message | split("\n")[0] // empty' | sed 's/^/• /' | tr '\n' '\\n')
-            COMMIT_AUTHORS=$(echo "$COMMITS" | jq -r '.[].commit.author.name' | sed 's/$/ - /' | tr '\n' '\\n')
-            COMMIT_SHAS=$(echo "$COMMITS" | jq -r '.[].sha | .[0:7]' | sed 's/^/ /' | tr '\n' '\\n')
-            COMMIT_LIST_FULL=$(echo -e "${COMMIT_SHAS}${COMMIT_LIST}${COMMIT_AUTHORS}" | sed 's/\\n/\n/g' | cut -c1-1000)
+            # Use jq to build the commit list string (avoids bash escaping issues)
+            COMMIT_LIST=$(echo "$COMMITS" | jq -r --arg repo "$REPO_NAME" --arg branch "$RUN_BRANCH' 'to_string' '(
+              "[\($repo)-\($branch)] \($numcommits) new commits\n" +
+              [.[].sha[0:7] as $sha | .[].commit.message | split("\n")[0] as $msg | .[].commit.author.name as $author |
+                " \($sha) \($msg) - \($author)"
+              ] | join("\n")
+            )')
             
-            # Title for first embed (commit/PR like)
+            # Title for first embed
             TITLE="[${REPO_NAME}-${RUN_BRANCH}] ${NUM_COMMITS} new commits"
             
             # Set outputs
             echo "title=$TITLE" >> $GITHUB_OUTPUT
-            echo "commit_list=$COMMIT_LIST_FULL" >> $GITHUB_OUTPUT
+            echo "commit_list=$COMMIT_LIST" >> $GITHUB_OUTPUT
             echo "run_branch=$RUN_BRANCH" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
@@ -120,7 +122,7 @@ jobs:
                 name: "FEX-Emu / FEX",
                 icon_url: $repoicon
               },
-              title: "[${{ env.REPO_NAME }}-${branch}] ${numcommits} new commits",
+              title: "[\($branch)] \($numcommits) new commits",
               description: $commitlist,
               url: $runurl,
               color: $color
