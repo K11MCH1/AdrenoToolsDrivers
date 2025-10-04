@@ -40,7 +40,7 @@ jobs:
           # Get count and handle empty
           RUNS_COUNT=$(echo "$RUNS" | jq '.workflow_runs | length')
           if [ "$RUNS_COUNT" -gt 0 ]; then
-            # Extract latest run details for embed
+            # Extract latest run details for embed (sanitize commit_msg for outputs)
             RUN_NAME=$(echo "$RUNS" | jq -r '.workflow_runs[0].name')
             RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
             RUN_STATUS_UPPER=$(echo "$RUN_STATUS" | tr '[:lower:]' '[:upper:]')
@@ -49,11 +49,12 @@ jobs:
             RUN_TIME=$(echo "$RUNS" | jq -r '.workflow_runs[0].created_at')
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
-            COMMIT_MSG=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.message // "No commit message"')
-            COMMIT_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id // "No SHA"')
+            COMMIT_MSG_RAW=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.message // "No commit message"')
+            COMMIT_MSG=$(echo "$COMMIT_MSG_RAW" | tr '\n' ' ' | sed 's/"/\\"/g' | cut -c1-200)  # Sanitize: remove newlines, escape quotes, truncate
+            COMMIT_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id // "No SHA"' | cut -c1-7)  # Short SHA
             COMMIT_AUTHOR=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.author.name // "Unknown"')
             
-            # Set outputs
+            # Set outputs (now sanitized)
             echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
             echo "run_actor=$RUN_ACTOR" >> $GITHUB_OUTPUT
@@ -75,7 +76,7 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          # Build embed JSON with details
+          # Determine color
           COLOR=3447003  # Default blue
           if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
             COLOR=65280  # Green
@@ -83,27 +84,40 @@ jobs:
             COLOR=16711680  # Red
           fi
           
-          EMBED_JSON='{
-            "username": "GitHub Actions Bot",
-            "embeds": [
-              {
-                "author": {
-                  "name": "FEX-Emu/FEX",
-                  "icon_url": "${{ steps.poll.outputs.repo_icon }}"
+          # Build embed with jq for proper escaping
+          EMBED_JSON=$(jq -n \
+            --arg username "GitHub Actions Bot" \
+            --argjson color "$COLOR" \
+            --arg title "${{ steps.poll.outputs.run_name }}" \
+            --arg status "${{ steps.poll.outputs.run_status }}" \
+            --arg actor "${{ steps.poll.outputs.run_actor }}" \
+            --arg time "${{ steps.poll.outputs.run_time }}" \
+            --arg runid "${{ steps.poll.outputs.run_id }}" \
+            --arg sha "${{ steps.poll.outputs.commit_sha }}" \
+            --arg author "${{ steps.poll.outputs.commit_author }}" \
+            --arg msg "${{ steps.poll.outputs.commit_msg }}" \
+            --arg url "${{ steps.poll.outputs.run_url }}" \
+            --arg repo_icon "${{ steps.poll.outputs.repo_icon }}" \
+            --arg actor_id "${{ steps.poll.outputs.run_actor_id }}" \
+            '{
+              username: $username,
+              embeds: [{
+                author: {
+                  name: "FEX-Emu/FEX",
+                  icon_url: $repo_icon
                 },
-                "title": "${{ steps.poll.outputs.run_name }}",
-                "description": "**Status:** ${{ steps.poll.outputs.run_status }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}\n**Commit:** `${{ steps.poll.outputs.commit_sha }}` by ${{ steps.poll.outputs.commit_author }}\n**Message:** ${{ steps.poll.outputs.commit_msg }}",
-                "url": "${{ steps.poll.outputs.run_url }}",
-                "color": '$COLOR',
-                "footer": {
-                  "text": "Check the Actions tab for full logs"
+                title: $title,
+                description: "**Status:** \($status)\n**Triggered by:** \($actor)\n**Time:** \($time)\n**Run ID:** \($runid)\n**Commit:** `\($sha)` by \($author)\n**Message:** \($msg)",
+                url: $url,
+                color: $color,
+                footer: {
+                  text: "Check the Actions tab for full logs"
                 },
-                "thumbnail": {
-                  "url": "https://avatars.githubusercontent.com/u/${{ steps.poll.outputs.run_actor_id }}?v=4"
+                thumbnail: {
+                  url: "https://avatars.githubusercontent.com/u/\($actor_id)?v=4"
                 }
-              }
-            ]
-          }'
+              }]
+            }')
           
           # Send via curl
           curl -H "Content-Type: application/json" \
