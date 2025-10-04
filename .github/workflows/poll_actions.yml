@@ -38,15 +38,18 @@ jobs:
             # Extract latest run details for embed
             RUN_NAME=$(echo "$RUNS" | jq -r '.workflow_runs[0].name')
             RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
+            RUN_STATUS_UPPER=$(echo "$RUN_STATUS" | tr '[:lower:]' '[:upper:]')
             RUN_ACTOR=$(echo "$RUNS" | jq -r '.workflow_runs[0].actor.login')
+            RUN_ACTOR_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].actor.id')
             RUN_TIME=$(echo "$RUNS" | jq -r '.workflow_runs[0].created_at')
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
             
             # Set outputs
             echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
-            echo "run_status=$RUN_STATUS" >> $GITHUB_OUTPUT
+            echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
             echo "run_actor=$RUN_ACTOR" >> $GITHUB_OUTPUT
+            echo "run_actor_id=$RUN_ACTOR_ID" >> $GITHUB_OUTPUT
             echo "run_time=$RUN_TIME" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
@@ -63,9 +66,9 @@ jobs:
         run: |
           # Build embed JSON with details
           COLOR=3447003  # Default blue
-          if [ "${{ steps.poll.outputs.run_status }}" = "success" ]; then
+          if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
             COLOR=65280  # Green
-          elif [ "${{ steps.poll.outputs.run_status }}" = "failure" ]; then
+          elif [ "${{ steps.poll.outputs.run_status }}" = "FAILURE" ]; then
             COLOR=16711680  # Red
           fi
           
@@ -74,15 +77,14 @@ jobs:
             "embeds": [
               {
                 "title": "New Workflow Run in FEX-Emu/FEX",
-                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ toUpper(steps.poll.outputs.run_status) }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
+                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ steps.poll.outputs.run_status }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
                 "url": "${{ steps.poll.outputs.run_url }}",
                 "color": '$COLOR',
                 "footer": {
-                  "text": "Check the Actions tab for full logs",
-                  "icon_url": "https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"
+                  "text": "Check the Actions tab for full logs"
                 },
                 "thumbnail": {
-                  "url": "https://avatars.githubusercontent.com/u/${{ steps.poll.outputs.run_actor_id }}?v=4"  # Actor avatar (note: we'd need actor_id from API if wanted)
+                  "url": "https://avatars.githubusercontent.com/u/${{ steps.poll.outputs.run_actor_id }}?v=4"
                 }
               }
             ]
