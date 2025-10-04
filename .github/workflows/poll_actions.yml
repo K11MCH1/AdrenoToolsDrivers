@@ -14,7 +14,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Optional; not needed for public repos
         run: |
-          # Target repo details (replace with your external repo)
+          # Target repo details
           REPO_OWNER="FEX-Emu"
           REPO_NAME="FEX"
           
@@ -23,8 +23,8 @@ jobs:
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           
           # Fetch recent runs
-          API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=10&status=completed"
-          RUNS=$(curl -s -f "$API_URL")  # -f fails on HTTP errors
+          API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=1&status=completed"  # Just the latest for notify
+          RUNS=$(curl -s -f "$API_URL")
           
           # Check for API errors (e.g., 404 Not Found)
           if echo "$RUNS" | jq -e '.message? == "Not Found"' >/dev/null; then
@@ -35,26 +35,63 @@ jobs:
           # Get count and handle empty
           RUNS_COUNT=$(echo "$RUNS" | jq '.workflow_runs | length')
           if [ "$RUNS_COUNT" -gt 0 ]; then
-            # List recent runs for logs
-            echo "$RUNS" | jq -r '.workflow_runs[] | "\(.name) by \(.actor.login) on \(.created_at) - Status: \(.conclusion) - URL: \(.html_url)"'
+            # Extract latest run details for embed
+            RUN_NAME=$(echo "$RUNS" | jq -r '.workflow_runs[0].name')
+            RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
+            RUN_ACTOR=$(echo "$RUNS" | jq -r '.workflow_runs[0].actor.login')
+            RUN_TIME=$(echo "$RUNS" | jq -r '.workflow_runs[0].created_at')
+            RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
+            RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
             
-            # Set last run ID
-            LAST_RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
-            echo "last_run_id=$LAST_RUN_ID" >> $GITHUB_OUTPUT
-            echo "New/updated run detected (ID: $LAST_RUN_ID)."
+            # Set outputs
+            echo "run_name=$RUN_NAME" >> $GITHUB_OUTPUT
+            echo "run_status=$RUN_STATUS" >> $GITHUB_OUTPUT
+            echo "run_actor=$RUN_ACTOR" >> $GITHUB_OUTPUT
+            echo "run_time=$RUN_TIME" >> $GITHUB_OUTPUT
+            echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
+            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "New run detected: $RUN_NAME ($RUN_STATUS) by $RUN_ACTOR."
           else
-            echo "last_run_id=none" >> $GITHUB_OUTPUT
+            echo "run_id=none" >> $GITHUB_OUTPUT
             echo "No completed runs found—skipping notify."
           fi
 
-      - name: Send to Discord if new runs
-        if: steps.poll.outputs.last_run_id != 'none'
-        uses: appleboy/discord-action@v1.2.0
-        with:
-          webhook_url: ${{ secrets.FEXEMU_WEBHOOK }}
-          message: |
-            **New Action Run in `${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}`!**
-            Check details: https://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/actions
-            (Last run ID: ${{ steps.poll.outputs.last_run_id }})
-          color: "#00ff00"  # Green for success; use "#ff0000" for failures, etc.
-          # username: "GitHub Poller Bot"  # Uncomment for custom bot name
+      - name: Send Rich Embed to Discord
+        if: steps.poll.outputs.run_id != 'none'
+        env:
+          WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
+        run: |
+          # Build embed JSON with details
+          COLOR=3447003  # Default blue
+          if [ "${{ steps.poll.outputs.run_status }}" = "success" ]; then
+            COLOR=65280  # Green
+          elif [ "${{ steps.poll.outputs.run_status }}" = "failure" ]; then
+            COLOR=16711680  # Red
+          fi
+          
+          EMBED_JSON='{
+            "username": "GitHub Actions Bot",
+            "embeds": [
+              {
+                "title": "New Workflow Run in FEX-Emu/FEX",
+                "description": "**Run Name:** ${{ steps.poll.outputs.run_name }}\n**Status:** ${{ steps.poll.outputs.run_status | uppercase }}\n**Triggered by:** ${{ steps.poll.outputs.run_actor }}\n**Time:** ${{ steps.poll.outputs.run_time }}\n**Run ID:** ${{ steps.poll.outputs.run_id }}",
+                "url": "${{ steps.poll.outputs.run_url }}",
+                "color": '$COLOR',
+                "footer": {
+                  "text": "Check the Actions tab for full logs",
+                  "icon_url": "https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"
+                },
+                "thumbnail": {
+                  "url": "https://avatars.githubusercontent.com/u/${{ steps.poll.outputs.run_actor_id }}?v=4"  # Actor avatar (note: we'd need actor_id from API if wanted)
+                }
+              }
+            ]
+          }'
+          
+          # Send via curl
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$EMBED_JSON" \
+               "$WEBHOOK_URL"
+          
+          echo "Embed sent successfully!"
