@@ -2,17 +2,16 @@ name: Poll FEX-Emu/FEX Workflows
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # Every 5 minutes
-  workflow_dispatch: # Allow manual trigger
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   poll:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch latest successful workflow run from FEX-Emu/FEX
+      - name: Fetch latest successful workflow run
         id: get-run
         run: |
-          # Fetch latest successful run from FEX-Emu/FEX
           response=$(curl -s -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/FEX-Emu/FEX/actions/runs?status=success&per_page=1)
 
@@ -44,7 +43,7 @@ jobs:
             echo "already_notified=false" >> $GITHUB_ENV
           fi
 
-      - name: Upload cache
+      - name: Cache store (so cache persists across runs)
         if: env.already_notified == 'false'
         uses: actions/cache@v4
         with:
@@ -53,7 +52,7 @@ jobs:
 
       - name: Send Discord Notification
         if: env.already_notified == 'false'
-        uses: tsickert/discord-webhook@v5
+        uses: tsickert/discord-webhook@v5.5.0
         with:
           webhook-url: ${{ secrets.FEXEMU_WEBHOOK }}
           embed: |
