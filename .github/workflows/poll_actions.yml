@@ -22,33 +22,10 @@ jobs:
           echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
           echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
           
-          # Fetch repo details for icon and stats
+          # Fetch repo details for icon
           REPO_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}")
           REPO_ICON=$(echo "$REPO_INFO" | jq -r '.owner.avatar_url')
-          REPO_DESC=$(echo "$REPO_INFO" | jq -r '.description')
-          STARS=$(echo "$REPO_INFO" | jq -r '.stargazers_count')
-          FORKS=$(echo "$REPO_INFO" | jq -r '.forks_count')
-          OPEN_ISSUES=$(echo "$REPO_INFO" | jq -r '.open_issues_count')
-          HAS_DISCUSSIONS=$(echo "$REPO_INFO" | jq -r '.has_discussions')
-          
-          # Contributors count (via Link header)
-          CONTRIB_HEADER=$(curl -s -I -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contributors?per_page=1" | grep -i '^link:')
-          CONTRIBUTORS=$(echo "$CONTRIB_HEADER" | sed -n 's/.*page=\([0-9]\+\)>; rel="last".*/\1/p' || echo "0")
-          
-          # Discussions count
-          DISCUSSIONS="0"
-          if [ "$HAS_DISCUSSIONS" = "true" ]; then
-            DISCUSS_HEADER=$(curl -s -I -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/discussions?state=open&per_page=1" | grep -i '^link:')
-            DISCUSSIONS=$(echo "$DISCUSS_HEADER" | sed -n 's/.*page=\([0-9]\+\)>; rel="last".*/\1/p' || echo "0")
-          fi
-          
           echo "repo_icon=$REPO_ICON" >> $GITHUB_OUTPUT
-          echo "repo_desc=$REPO_DESC" >> $GITHUB_OUTPUT
-          echo "stars=$STARS" >> $GITHUB_OUTPUT
-          echo "forks=$FORKS" >> $GITHUB_OUTPUT
-          echo "open_issues=$OPEN_ISSUES" >> $GITHUB_OUTPUT
-          echo "contributors=$CONTRIBUTORS" >> $GITHUB_OUTPUT
-          echo "discussions=$DISCUSSIONS" >> $GITHUB_OUTPUT
           
           # Fetch recent runs
           API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=1&status=completed"
@@ -62,30 +39,34 @@ jobs:
           
           RUNS_COUNT=$(echo "$RUNS" | jq '.workflow_runs | length')
           if [ "$RUNS_COUNT" -gt 0 ]; then
-            FULL_SHA=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_commit.id')
-            COMMIT_INFO=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/${FULL_SHA}")
-            COMMIT_MSG_RAW=$(echo "$COMMIT_INFO" | jq -r '.commit.message')
-            SHORT_SHA=$(echo "$FULL_SHA" | cut -c1-7)
-            
-            # Title: first line of commit message + · repo@short_sha
-            TITLE_FIRST_LINE=$(echo "$COMMIT_MSG_RAW" | head -n1)
-            TITLE="${TITLE_FIRST_LINE} · ${REPO_OWNER}/${REPO_NAME}@${SHORT_SHA}"
-            
-            # Description: second line (PR title for merges) or full message
-            DESCRIPTION=$(echo "$COMMIT_MSG_RAW" | sed -n '2p' || echo "$COMMIT_MSG_RAW")
-            DESCRIPTION=$(echo "$DESCRIPTION" | tr '\n' ' ' | sed 's/"/\\\\"/g' | cut -c1-1000)
-            
+            # Extract run and branch details
+            RUN_BRANCH=$(echo "$RUNS" | jq -r '.workflow_runs[0].head_branch')
             RUN_URL=$(echo "$RUNS" | jq -r '.workflow_runs[0].html_url')
             RUN_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
             RUN_STATUS_UPPER=$(echo "$RUN_STATUS" | tr '[:lower:]' '[:upper:]')
             
+            # Fetch recent commits on the branch (last 3 for demo; adjust per_page)
+            COMMITS=$(curl -s -f "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?sha=${RUN_BRANCH}&per_page=3")
+            NUM_COMMITS=$(echo "$COMMITS" | jq '. | length')
+            
+            # Build commit list for description
+            COMMIT_LIST=$(echo "$COMMITS" | jq -r '.[].commit.message | split("\n")[0] // empty' | sed 's/^/• /' | tr '\n' '\\n')
+            COMMIT_AUTHORS=$(echo "$COMMITS" | jq -r '.[].commit.author.name' | sed 's/$/ - /' | tr '\n' '\\n')
+            COMMIT_SHAS=$(echo "$COMMITS" | jq -r '.[].sha | .[0:7]' | sed 's/^/ /' | tr '\n' '\\n')
+            COMMIT_LIST_FULL=$(echo -e "${COMMIT_SHAS}${COMMIT_LIST}${COMMIT_AUTHORS}" | sed 's/\\n/\n/g' | cut -c1-1000)
+            
+            # Title for first embed (commit/PR like)
+            TITLE="[${REPO_NAME}-${RUN_BRANCH}] ${NUM_COMMITS} new commits"
+            
             # Set outputs
             echo "title=$TITLE" >> $GITHUB_OUTPUT
-            echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+            echo "commit_list=$COMMIT_LIST_FULL" >> $GITHUB_OUTPUT
+            echo "run_branch=$RUN_BRANCH" >> $GITHUB_OUTPUT
             echo "run_url=$RUN_URL" >> $GITHUB_OUTPUT
             echo "run_status=$RUN_STATUS_UPPER" >> $GITHUB_OUTPUT
+            echo "num_commits=$NUM_COMMITS" >> $GITHUB_OUTPUT
             echo "run_id=1" >> $GITHUB_OUTPUT  # Dummy for if
-            echo "New run detected."
+            echo "New run detected with $NUM_COMMITS commits on $RUN_BRANCH."
           else
             echo "run_id=none" >> $GITHUB_OUTPUT
             echo "No completed runs found—skipping notify."
@@ -96,90 +77,53 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.FEXEMU_WEBHOOK }}
         run: |
-          # Determine color and footer icon
-          COLOR=3447003  # Default
-          FOOTER_TEXT="GitHub Actions"
-          GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_default.png"
+          # Determine color
+          COLOR=3447003  # Default blue
           if [ "${{ steps.poll.outputs.run_status }}" = "SUCCESS" ]; then
             COLOR=65280  # Green
-            FOOTER_TEXT="GitHub Actions • All checks have passed"
-            GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_success.png"
           elif [ "${{ steps.poll.outputs.run_status }}" = "FAILURE" ]; then
             COLOR=16711680  # Red
-            FOOTER_TEXT="GitHub Actions • Some checks have failed"
-            GITHUB_ICON="https://github.githubassets.com/images/modules/actions_dashboard/label_failure.png"
           fi
           
-          # Build embeds with jq
+          # Build embed with jq for proper escaping
           EMBED_JSON=$(jq -n \
             --arg username "GitHub" \
             --argjson color "$COLOR" \
             --arg title "${{ steps.poll.outputs.title }}" \
-            --arg desc "${{ steps.poll.outputs.description }}" \
+            --arg commitlist "${{ steps.poll.outputs.commit_list }}" \
+            --arg branch "${{ steps.poll.outputs.run_branch }}" \
             --arg runurl "${{ steps.poll.outputs.run_url }}" \
-            --arg repodesc "${{ steps.poll.outputs.repo_desc }}" \
-            --arg repourl "https://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}" \
+            --arg repo "${{ env.REPO_NAME }}" \
+            --arg numcommits "${{ steps.poll.outputs.num_commits }}" \
             --arg repoicon "${{ steps.poll.outputs.repo_icon }}" \
-            --arg contribs "${{ steps.poll.outputs.contributors }}" \
-            --arg issues "${{ steps.poll.outputs.open_issues }}" \
-            --arg discussions "${{ steps.poll.outputs.discussions }}" \
-            --arg stars "${{ steps.poll.outputs.stars }}" \
-            --arg forks "${{ steps.poll.outputs.forks }}" \
-            --arg footertext "$FOOTER_TEXT" \
-            --arg footericon "$GITHUB_ICON" \
             '{
               username: $username,
               avatar_url: "https://github.githubassets.com/images/modules/actions_dashboard/inverted-ghost.png",
               embeds: [
                 {
                   author: {
-                    name: "${{ env.REPO_OWNER }} / ${{ env.REPO_NAME }}",
+                    name: "FEX-Emu / FEX",
                     icon_url: $repoicon,
-                    url: $repourl
+                    url: "https://github.com/FEX-Emu/FEX"
                   },
                   title: $title,
-                  description: $desc,
+                  description: $commitlist,
                   url: $runurl,
                   color: $color,
                   footer: {
-                    text: $footertext,
-                    icon_url: $footericon
+                    text: "GitHub Actions • All checks have passed"
                   }
                 },
                 {
-                  title: "${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}",
-                  description: $repodesc,
-                  url: $repourl,
-                  thumbnail: {
-                    url: $repoicon
+                  author: {
+                    name: "FEX-Emu / FEX",
+                    icon_url: $repoicon
                   },
-                  fields: [
-                    {
-                      name: "Contributors",
-                      value: $contribs,
-                      inline: true
-                    },
-                    {
-                      name: "Issues",
-                      value: $issues,
-                      inline: true
-                    },
-                    {
-                      name: "Discussions",
-                      value: $discussions,
-                      inline: true
-                    },
-                    {
-                      name: "Stars",
-                      value: $stars,
-                      inline: true
-                    },
-                    {
-                      name: "Forks",
-                      value: $forks,
-                      inline: true
-                    }
-                  ]
+                  title: "[${{ env.REPO_NAME }}-${branch}] ${numcommits} new commits",
+                  description: $commitlist,
+                  url: $runurl,
+                  color: $color,
+                  fields: []
                 }
               ]
             }')
