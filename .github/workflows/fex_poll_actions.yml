@@ -34,7 +34,16 @@ jobs:
         run: |
           latest_id=$(jq -r '.workflow_runs[0].id // empty' recent_runs.json)
           LAST_ID="${{ env.last_run_id }}"
-          if [ -z "$latest_id" ] || [ "$latest_id" = "$LAST_ID" ]; then
+
+          if [ -z "$latest_id" ]; then
+            echo "already_notified=true" >> $GITHUB_ENV
+          elif [ -z "$LAST_ID" ]; then
+            # First run: notify for the latest run
+            new_runs=$(jq -r '.workflow_runs[] | .html_url' recent_runs.json)
+            echo "already_notified=false" >> $GITHUB_ENV
+            echo "notification_message=New FEX-Emu/FEX workflow run(s):\n$new_runs" >> $GITHUB_ENV
+            echo "$latest_id" > .last_run_id
+          elif [ "$latest_id" = "$LAST_ID" ]; then
             echo "already_notified=true" >> $GITHUB_ENV
           else
             new_runs=$(jq -r --arg last_id "$LAST_ID" '.workflow_runs[] | select(.id > ($last_id|tonumber)) | .html_url' recent_runs.json)
