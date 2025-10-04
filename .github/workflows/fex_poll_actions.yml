@@ -42,14 +42,14 @@ jobs:
           STATE_FILE=".cache/notified_runs.txt"
           NEW_IDS=""
 
-          mapfile -t RUN_IDS < <(jq -r '.workflow_runs[] | select(.conclusion=="success") | .id' recent_runs.json || true)
-
-          for run_id in "${RUN_IDS[@]}"; do
+          # Use while-read instead of mapfile or process substitution
+          jq -r '.workflow_runs[] | select(.conclusion=="success") | .id' recent_runs.json | while read -r run_id; do
             if ! grep -qx "$run_id" "$STATE_FILE"; then
               NEW_IDS="$NEW_IDS $run_id"
             fi
           done
 
+          # Export NEW_IDS for GitHub Actions
           if [ -z "$NEW_IDS" ]; then
             echo "already_notified=true" >> $GITHUB_ENV
           else
