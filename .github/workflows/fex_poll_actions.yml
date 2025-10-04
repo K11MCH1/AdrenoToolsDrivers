@@ -20,7 +20,10 @@ jobs:
         run: |
           STATE_FILE=".cache/notified_runs.txt"
           mkdir -p .cache
-          touch "$STATE_FILE"
+          # Ensure the file exists even if no artifact was downloaded
+          if [ ! -f "$STATE_FILE" ]; then
+            touch "$STATE_FILE"
+          fi
           echo "Previously notified runs:"
           cat "$STATE_FILE"
 
@@ -54,35 +57,41 @@ jobs:
         if: env.already_notified == 'false'
         run: |
           STATE_FILE=".cache/notified_runs.txt"
-          for run_id in ${{ env.new_runs }}; do
-            run_data=$(jq -r --arg id "$run_id" '.workflow_runs[] | select(.id==$id|tonumber)' recent_runs.json)
-            url=$(echo "$run_data" | jq -r '.html_url')
-            workflow_name=$(echo "$run_data" | jq -r '.name')
-            branch=$(echo "$run_data" | jq -r '.head_branch')
-            actor=$(echo "$run_data" | jq -r '.head_commit.author.name')
-            status_icon="🟢"
-            color=3066993
+          NEW_RUNS="${{ env.new_runs }}"
 
-            message=$(jq -n \
-              --arg title "$workflow_name" \
-              --arg url "$url" \
-              --arg branch "$branch" \
-              --arg actor "$actor" \
-              --arg icon "$status_icon" \
-              --argjson color "$color" \
-              '{
-                username: "GitHub Actions",
-                embeds: [{
-                  title: ($icon + " " + $title),
-                  url: $url,
-                  description: "Workflow succeeded on branch `" + $branch + "` by " + $actor,
-                  color: $color,
-                  footer: {text: "FEX-Emu/FEX Actions"}
-                }]
-              }')
+          # Only loop if NEW_RUNS is non-empty
+          if [ -n "$NEW_RUNS" ]; then
+            for run_id in $NEW_RUNS; do
+              run_data=$(jq -r --arg id "$run_id" '.workflow_runs[] | select(.id==$id|tonumber)' recent_runs.json)
+              url=$(echo "$run_data" | jq -r '.html_url')
+              workflow_name=$(echo "$run_data" | jq -r '.name')
+              branch=$(echo "$run_data" | jq -r '.head_branch')
+              actor=$(echo "$run_data" | jq -r '.head_commit.author.name')
+              status_icon="🟢"
+              color=3066993
 
-            curl -H "Content-Type: application/json" -X POST -d "$message" ${{ secrets.FEXEMU_WEBHOOK }}
-            echo "$run_id" >> "$STATE_FILE"
+              message=$(jq -n \
+                --arg title "$workflow_name" \
+                --arg url "$url" \
+                --arg branch "$branch" \
+                --arg actor "$actor" \
+                --arg icon "$status_icon" \
+                --argjson color "$color" \
+                '{
+                  username: "GitHub Actions",
+                  embeds: [{
+                    title: ($icon + " " + $title),
+                    url: $url,
+                    description: "Workflow succeeded on branch `" + $branch + "` by " + $actor,
+                    color: $color,
+                    footer: {text: "FEX-Emu/FEX Actions"}
+                  }]
+                }')
+
+              curl -H "Content-Type: application/json" -X POST -d "$message" ${{ secrets.FEXEMU_WEBHOOK }}
+              echo "$run_id" >> "$STATE_FILE"
+            done
+          fi
 
       - name: Upload updated notified runs artifact
         if: env.already_notified == 'false'
