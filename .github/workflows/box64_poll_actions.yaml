@@ -2,7 +2,7 @@ name: BOX64 Workflow Runs
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/1 * * * *'
 
 jobs:
   monitor:
