@@ -16,6 +16,6 @@ jobs:
           color: "16711680"  # Embed color (hex or decimal, e.g., red)
           username: "GitHub Releases"  # Bot username in Discord
           avatar_url: "https://avatars.githubusercontent.com/u/9919?s=48"  # GitHub logo
-          content: "@channel"  # Optional ping (e.g., @everyone or @role)
+          content: "@Turnip"  # Optional ping (e.g., @everyone or @role)
           footer_title: "New Release!"  # Footer text
           reduce_headings: true  # Simplify changelog headings in the embed
