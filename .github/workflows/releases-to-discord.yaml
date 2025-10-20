@@ -2,20 +2,29 @@ name: Releases to Discord
 
 on:
   release:
-    types: [published]  # Triggers only on new published releases
+    types: [published]
 
 jobs:
   notify-discord:
     runs-on: ubuntu-latest
     steps:
       - name: Send Release to Discord
-        uses: SethCohen/github-releases-to-discord@v1
-        with:
-          webhook_url: ${{ secrets.WEBHOOK_URL }}
-          # Optional customizations:
-          color: "16711680"  # Embed color (hex or decimal, e.g., red)
-          username: "GitHub Releases"  # Bot username in Discord
-          avatar_url: "https://avatars.githubusercontent.com/u/9919?s=48"  # GitHub logo
-          content: "@Turnip"  # Optional ping (e.g., @everyone or @role)
-          footer_title: "New Release!"  # Footer text
-          reduce_headings: true  # Simplify changelog headings in the embed
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d '{
+              "content": "<@&1429870971296284832>",
+              "embeds": [{
+                "title": "New Release: ${{ github.event.release.name }}",
+                "url": "${{ github.event.release.html_url }}",
+                "description": "${{ github.event.release.body }}",
+                "color": 16711680,
+                "footer": { "text": "New Release!" }
+              }],
+              "allowed_mentions": {
+                "roles": ["1429870971296284832"]
+              }
+            }' \
+            $WEBHOOK_URL
