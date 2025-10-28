@@ -1,4 +1,4 @@
-name: Releases to Discord
+name: Adrenotools to Discord
 
 on:
   release:
