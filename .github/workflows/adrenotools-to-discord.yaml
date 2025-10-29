@@ -12,19 +12,21 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -X POST \
-            -d '{
-              "content": "<@&1429870971296284832>",
-              "embeds": [{
-                "title": "New Release: ${{ github.event.release.name }}",
-                "url": "${{ github.event.release.html_url }}",
-                "description": "${{ github.event.release.body }}",
-                "color": 16711680,
-                "footer": { "text": "New Release!" }
-              }],
-              "allowed_mentions": {
-                "roles": ["1429870971296284832"]
-              }
-            }' \
-            $WEBHOOK_URL
+          curl -X POST -H "Content-Type: application/json" \
+            -d "$(jq -n --arg name "${{ github.event.release.name }}" \
+                      --arg url "${{ github.event.release.html_url }}" \
+                      --arg body "${{ github.event.release.body }}" \
+                      '{
+                        content: "<@&1429870971296284832>",
+                        embeds: [{
+                          title: "New Release: \($name)",
+                          url: $url,
+                          description: $body,
+                          color: 16711680,
+                          footer: { text: "New Release!" }
+                        }],
+                        allowed_mentions: {
+                          roles: ["1429870971296284832"]
+                        }
+                      }')" \
+            "$WEBHOOK_URL"
