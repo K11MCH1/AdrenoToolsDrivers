@@ -1,0 +1,70 @@
+name: DXVK Pull Request Monitor
+
+on:
+  schedule:
+    - cron: '*/1 * * * *'
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get last sent PR ID
+        id: get_last_id
+        run: |
+          if [ -f last_pr_id.txt ]; then
+            LAST_ID=$(cat last_pr_id.txt)
+          else
+            LAST_ID=0
+          fi
+          echo "last_id=$LAST_ID" >> $GITHUB_OUTPUT
+
+      - name: Fetch recent pull requests from doitsujin/dxvk
+        id: fetch_prs
+        run: |
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/doitsujin/dxvk/pulls?per_page=30&state=all")
+          echo "$RESPONSE" > prs.json
+
+      - name: Process and notify on new pull requests
+        env:
+          WEBHOOK_URL: ${{ secrets.DXVK_WEBHOOK }}
+          LAST_ID: ${{ steps.get_last_id.outputs.last_id }}
+        run: |
+          # Extract PRs with PR.id > last saved id
+          NEW_PRS=$(jq '[.[] | select(.id > '"$LAST_ID"') | {id: .id, url: .html_url}] | sort_by(.id)' prs.json)
+
+          COUNT=$(echo "$NEW_PRS" | jq 'length')
+
+          if [ "$COUNT" -gt 0 ]; then
+            MAX_ID=$LAST_ID
+
+            for i in $(seq 0 $(($COUNT - 1))); do
+              PR_ID=$(echo "$NEW_PRS" | jq -r ".[$i].id")
+              PR_URL=$(echo "$NEW_PRS" | jq -r ".[$i].url")
+
+              # Send notification to Discord webhook
+              curl -H "Content-Type: application/json" -d "{\"content\": \"$PR_URL\"}" "$WEBHOOK_URL"
+
+              # Track max PR id
+              if [ "$PR_ID" -gt "$MAX_ID" ]; then
+                MAX_ID=$PR_ID
+              fi
+            done
+
+            # Save new max PR ID
+            echo "$MAX_ID" > last_pr_id.txt
+
+            # Commit the updated ID
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "actions@github.com"
+            git add last_pr_id.txt
+            git commit -m "Update last PR ID"
+            git push
+          fi
