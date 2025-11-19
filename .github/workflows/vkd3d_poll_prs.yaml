@@ -1,0 +1,43 @@
+name: VKD3D Pull Request Monitor
+
+on:
+  schedule:
+    - cron: '*/1 * * * *'
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get last sent PR ID
+        id: get_last_id
+        run: |
+          if [ -f last_pr_id.txt ]; then
+            LAST_ID=$(cat last_pr_id.txt)
+          else
+            LAST_ID=0
+          fi
+          echo "last_id=$LAST_ID" >> $GITHUB_OUTPUT
+
+      - name: Fetch recent pull requests from HansKristian-Work/vkd3d-proton
+        id: fetch_prs
+        run: |
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/HansKristian-Work/vkd3d-proton/pulls?per_page=30&state=all")
+          echo "$RESPONSE" > prs.json
+
+      - name: Process and notify on new pull requests
+        env:
+          WEBHOOK_URL: ${{ secrets.VKD3D_WEBHOOK }}
+          LAST_ID: ${{ steps.get_last_id.outputs.last_id }}
+        run: |
+          # Extract PRs with .id > last known id
+          NEW_PRS=$(jq '[.[] | select(.id > '"$LAST_ID"') | {id: .id, url: .html_url}] | sort_by(.id)' prs.json)
+
+          COUNT=$(echo "$NEW_PRS" | jq '_
