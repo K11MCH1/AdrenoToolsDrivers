@@ -1,0 +1,15 @@
+ADRENO_TOOLS_778G_FULL_HD_v1.0/
+├── README.md
+├── INSTALL.txt
+├── optimizations/
+│   ├── ADRENO_TOOLS_778G_FULL_HD_v1.0.c
+│   ├── texture_compression_full_hd.glsl
+│   └── memory_optimization.cpp
+├── scripts/
+│   ├── install.sh
+│   └── setup_optimizations.sh
+├── config/
+│   ├── build_config.mk
+│   └── gpu_settings.conf
+└── docs/
+    └── OPTIMIZATION_GUIDE.md
